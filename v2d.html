@@ -32,8 +32,14 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 32px 24px 64px;
+      justify-content: center;
+      padding: 24px;
       font-family: 'Calibre', system-ui, sans-serif;
+    }
+    .phone-wrap {
+      width: 390px;
+      height: 844px;
+      transform-origin: center top;
     }
     .phone {
       width: 390px;
@@ -63,16 +69,24 @@
 </head>
 <body>
 
-  <div style="width:390px;margin-bottom:20px;display:flex;flex-direction:column;gap:4px">
-    <h1 style="font-family:'Axiforma for Affirm',sans-serif;font-weight:700;font-size:20px;color:white;opacity:0.9">
-      Apple Pay In-Store — UXR Round 2 Final
-    </h1>
-    <p style="font-family:'Calibre',sans-serif;font-size:13px;color:rgba(255,255,255,0.45)">
-      Wallet card stack → Affirm pass → Amount entry → Loading (5s, slide transitions) → Plans → Review
-    </p>
+  <div class="phone-wrap" id="phone-wrap">
+    <div id="root"></div>
   </div>
 
-  <div id="root"></div>
+  <script>
+    function scalePhone() {
+      var wrap = document.getElementById('phone-wrap');
+      var availW = window.innerWidth - 48;
+      var availH = window.innerHeight - 48;
+      var scaleW = availW / 390;
+      var scaleH = availH / 844;
+      var scale = Math.min(scaleW, scaleH, 1);
+      wrap.style.transform = 'scale(' + scale + ')';
+      wrap.style.marginBottom = ((844 * scale) - 844) + 'px';
+    }
+    scalePhone();
+    window.addEventListener('resize', scalePhone);
+  </script>
 
   <script type="text/babel">
     const { useState, useEffect } = React;
