@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apple Pay In-Store — V2B: Submit to Load</title>
+  <style>
+    @font-face {
+      font-family: 'Calibre';
+      src: url('https://www.affirm.com/fonts/src/calibre-regular.woff2') format('woff2');
+      font-weight: 400; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Calibre';
+      src: url('https://www.affirm.com/fonts/src/calibre-medium.woff2') format('woff2');
+      font-weight: 500; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Calibre';
+      src: url('https://www.affirm.com/fonts/src/calibre-semibold.woff2') format('woff2');
+      font-weight: 600; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Axiforma for Affirm';
+      src: url('https://www.affirm.com/fonts/src/AxiformaforAffirm.woff2') format('woff2');
+      font-weight: 400; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Axiforma for Affirm';
+      src: url('https://www.affirm.com/fonts/src/AxiformaforAffirm-Medium.woff2') format('woff2');
+      font-weight: 500; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Axiforma for Affirm';
+      src: url('https://www.affirm.com/fonts/src/AxiformaforAffirm-Bold.woff2') format('woff2');
+      font-weight: 700; font-style: normal; font-display: swap;
+    }
+  </style>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Figma capture support -->
+  <script>
+    if (window.location.hash.includes('figmacapture=')) {
+      var s = document.createElement('script');
+      s.src = 'https://mcp.figma.com/mcp/html-to-design/capture.js';
+      s.async = true;
+      document.head.appendChild(s);
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 24px 64px;
+      font-family: 'Calibre', system-ui, -apple-system, sans-serif;
+    }
+    .phone {
+      width: 390px;
+      height: 844px;
+      background: #f2f2f4;
+      border-radius: 52px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 10px #2a2a2a, 0 0 0 11px #444;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    ::-webkit-scrollbar { display: none; }
+    button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    button:active { opacity: 0.8; }
+    @keyframes blink    { 0%,100%{opacity:1} 50%{opacity:0} }
+    @keyframes fadeIn   { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes shimmer  { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+    .fade-in { animation: fadeIn 0.25s ease forwards; }
+    .shimmer-bar {
+      background: linear-gradient(90deg, #e2e2e6 25%, #ededf1 50%, #e2e2e6 75%);
+      background-size: 400px 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+
+  <div style="width:390px;margin-bottom:20px;display:flex;flex-direction:column;gap:4px">
+    <h1 style="font-family:'Axiforma for Affirm',sans-serif;font-weight:700;font-size:20px;color:white;opacity:0.9">
+      Apple Pay In-Store — V2B
+    </h1>
+    <p style="font-family:'Calibre',sans-serif;font-size:13px;color:rgba(255,255,255,0.45)">
+      Submit-to-load variant · compact CTA · empty state · shimmer loading
+    </p>
+  </div>
+
+  <div id="root-v2b"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // ── Design tokens ──────────────────────────────────────────────
+    const c = {
+      bg:      '#f2f2f4',
+      surface: '#ffffff',
+      nav:     '#f3f4f2',
+      text:    '#0c0c14',
+      sub:     '#4b4b5c',
+      accent:  '#000061',
+      link:    '#000061',
+      bdg:     '#e2e2ff',
+      bdgTxt:  '#4242cf',
+      div:     '#cbcbd4',
+      infoBg:  '#f0f0ff',
+      greenBg: '#eaf7f0',
+      greenTxt:'#1a6644',
+      warn:    '#fcf9e8',
+    };
+
+    // ── Shared primitives ──────────────────────────────────────────
+
+    function NavBar({ onBack, backLabel = 'Back' }) {
+      return (
+        <div style={{
+          background: c.nav,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          height: 68,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          flexShrink: 0,
+        }}>
+          {onBack && (
+            <button onClick={onBack} style={{
+              position: 'absolute', left: 16,
+              background: 'rgba(0,0,0,0.07)',
+              border: '1.5px solid rgba(255,255,255,0.6)',
+              borderRadius: 999,
+              padding: '6px 12px',
+              display: 'flex', alignItems: 'center', gap: 3,
+              color: c.text, fontSize: 16,
+              fontFamily: "'Calibre', sans-serif",
+              fontWeight: 500,
+            }}>
+              ‹ {backLabel}
+            </button>
+          )}
+          <div style={{
+            background: 'white',
+            borderRadius: 10,
+            padding: '7px 14px',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+          }}>
+            <span style={{
+              fontSize: 21, fontWeight: 800,
+              color: c.text,
+              fontFamily: "'Axiforma for Affirm', sans-serif",
+              letterSpacing: '-0.3px',
+            }}>affirm</span>
+          </div>
+        </div>
+      );
+    }
+
+    function PrimaryBtn({ children, onClick, disabled }) {
+      return (
+        <button onClick={onClick} disabled={disabled} style={{
+          width: '100%',
+          background: disabled ? '#9b9be8' : c.accent,
+          color: 'white',
+          border: 'none',
+          borderRadius: 10,
+          padding: '14px 24px',
+          fontSize: 18,
+          fontWeight: 600,
+          fontFamily: "'Calibre', sans-serif",
+          transition: 'background 0.15s',
+        }}>
+          {children}
+        </button>
+      );
+    }
+
+    function Badge({ label, bg = c.bdg, color = c.bdgTxt }) {
+      return (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center',
+          background: bg, borderRadius: 8,
+          padding: '3px 10px',
+          marginBottom: 8,
+        }}>
+          <span style={{
+            fontSize: 14, fontWeight: 500, color,
+            fontFamily: "'Calibre', sans-serif",
+          }}>{label}</span>
+        </div>
+      );
+    }
+
+    function HomeIndicator() {
+      return (
+        <div style={{
+          display: 'flex', justifyContent: 'center',
+          paddingTop: 10, paddingBottom: 18,
+          background: c.bg, flexShrink: 0,
+        }}>
+          <div style={{
+            width: 134, height: 5,
+            background: c.text, borderRadius: 3, opacity: 0.2,
+          }} />
+        </div>
+      );
+    }
+
+    // ── Plan card ──────────────────────────────────────────────────
+
+    function PlanCard({ plan, selected, onSelect }) {
+      return (
+        <div onClick={onSelect} style={{
+          background: c.surface, borderRadius: 16,
+          border: selected ? `2px solid ${c.accent}` : '2px solid transparent',
+          padding: '12px 16px',
+          cursor: 'pointer',
+          transition: 'border-color 0.15s',
+        }}>
+          {plan.badge && (
+            <Badge label={plan.badge} bg={plan.badgeBg || c.bdg} color={plan.badgeColor || c.bdgTxt} />
+          )}
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <div style={{
+              width: 20, height: 20, borderRadius: 10, flexShrink: 0, marginTop: 5,
+              border: selected ? `6px solid ${c.accent}` : `2px solid ${c.div}`,
+              background: c.surface,
+              transition: 'border 0.15s',
+            }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontFamily: "'Calibre', sans-serif", color: c.text, margin: '0 0 4px' }}>
+                <span style={{ fontSize: 20, fontWeight: 600 }}>{plan.payment}</span>
+                <span style={{ fontSize: 17 }}>{' '}{plan.frequency}</span>
+              </p>
+              <div style={{
+                display: 'flex', gap: 8, flexWrap: 'wrap',
+                fontSize: 16, color: c.sub,
+                fontFamily: "'Calibre', sans-serif",
+              }}>
+                <span>{plan.interest}</span>
+                <span>·</span>
+                <span>{plan.due}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Ghost plan card (empty state) ──────────────────────────────
+
+    function GhostPlanCard({ widths = ['58%', '38%'] }) {
+      return (
+        <div style={{
+          background: c.surface, borderRadius: 16,
+          padding: '12px 16px',
+          display: 'flex', gap: 12, alignItems: 'flex-start',
+          opacity: 0.55,
+        }}>
+          <div style={{
+            width: 20, height: 20, borderRadius: 10,
+            background: c.div, flexShrink: 0, marginTop: 4,
+          }} />
+          <div style={{ flex: 1 }}>
+            <div style={{
+              background: c.div, borderRadius: 4,
+              height: 15, width: widths[0], marginBottom: 7,
+            }} />
+            <div style={{
+              background: '#e8e8ec', borderRadius: 4,
+              height: 13, width: widths[1],
+            }} />
+          </div>
+        </div>
+      );
+    }
+
+    function GhostPlansEmpty() {
+      return (
+        <div>
+          <p style={{
+            fontFamily: "'Calibre', sans-serif",
+            fontWeight: 600, fontSize: 17,
+            color: c.sub, margin: '0 0 10px',
+            opacity: 0.5,
+          }}>Your plans</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <GhostPlanCard widths={['60%', '40%']} />
+            <GhostPlanCard widths={['55%', '35%']} />
+            <GhostPlanCard widths={['64%', '44%']} />
+          </div>
+          <p style={{
+            fontFamily: "'Calibre', sans-serif",
+            fontSize: 13, color: c.sub,
+            textAlign: 'center',
+            margin: '14px 0 0',
+            opacity: 0.65,
+          }}>
+            Enter an amount to see your payment options
+          </p>
+        </div>
+      );
+    }
+
+    // ── Breadcrumb (variant B) ────────────────────────────────────
+
+    function Breadcrumb() {
+      const steps = ['Enter amount', 'See plans', 'Review'];
+      return (
+        <div style={{
+          display: 'flex', alignItems: 'center',
+          marginBottom: 14,
+        }}>
+          {steps.map((label, i) => (
+            <React.Fragment key={i}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                <div style={{
+                  width: 20, height: 20, borderRadius: 10,
+                  background: i === 0 ? c.accent : c.div,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, color: 'white',
+                    fontFamily: "'Calibre', sans-serif",
+                  }}>{i + 1}</span>
+                </div>
+                <span style={{
+                  fontSize: 13,
+                  fontWeight: i === 0 ? 600 : 400,
+                  color: i === 0 ? c.text : c.sub,
+                  fontFamily: "'Calibre', sans-serif",
+                  opacity: i === 0 ? 1 : 0.5,
+                  whiteSpace: 'nowrap',
+                }}>{label}</span>
+              </div>
+              {i < steps.length - 1 && (
+                <div style={{
+                  flex: 1, height: 1.5,
+                  background: c.div,
+                  margin: '0 7px',
+                  minWidth: 10,
+                }} />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    }
+
+    // ── Up Next card (variant C) ───────────────────────────────────
+
+    function UpNextCard() {
+      return (
+        <div>
+          <div style={{ height: 1, background: c.div, marginBottom: 14 }} />
+          <p style={{
+            fontFamily: "'Calibre', sans-serif",
+            fontSize: 11, fontWeight: 600, color: c.sub,
+            textTransform: 'uppercase', letterSpacing: '0.7px',
+            margin: '0 0 8px', opacity: 0.6,
+          }}>Up next</p>
+          <div style={{
+            background: c.surface,
+            borderRadius: 14,
+            padding: '13px 14px',
+            display: 'flex', alignItems: 'center', gap: 12,
+            border: `1.5px dashed ${c.div}`,
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: c.infoBg,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+              fontSize: 18, lineHeight: 1,
+            }}>✦</div>
+            <div style={{ flex: 1 }}>
+              <p style={{
+                fontFamily: "'Calibre', sans-serif",
+                fontWeight: 600, fontSize: 16,
+                color: c.text, margin: '0 0 2px',
+              }}>Choose from 3 payment plans</p>
+              <p style={{
+                fontFamily: "'Calibre', sans-serif",
+                fontSize: 14, color: c.sub, margin: 0,
+              }}>Pay in 4, 6, or 12 installments</p>
+            </div>
+            <span style={{ color: c.div, fontSize: 22, lineHeight: 1 }}>›</span>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Mini card row (variant D) ──────────────────────────────────
+
+    function MiniCardRow() {
+      const cards = [
+        { w1: '64%', w2: '42%' },
+        { w1: '56%', w2: '36%' },
+        { w1: '70%', w2: '46%' },
+      ];
+      return (
+        <div>
+          <div style={{ height: 1, background: c.div, marginBottom: 14 }} />
+          <p style={{
+            fontFamily: "'Calibre', sans-serif",
+            fontSize: 14, color: c.sub,
+            margin: '0 0 10px', opacity: 0.6,
+          }}>Enter an amount to see your plans:</p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {cards.map(({ w1, w2 }, i) => (
+              <div key={i} style={{
+                flex: 1,
+                background: c.surface,
+                borderRadius: 12,
+                padding: '10px',
+                opacity: 0.5,
+              }}>
+                <div style={{
+                  width: 14, height: 14, borderRadius: 7,
+                  background: '#d0d0da', marginBottom: 8,
+                }} />
+                <div style={{
+                  background: '#d8d8de', borderRadius: 3,
+                  height: 9, width: w1, marginBottom: 5,
+                }} />
+                <div style={{
+                  background: '#e4e4ea', borderRadius: 3,
+                  height: 8, width: w2,
+                }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Shimmer card (loading state) ───────────────────────────────
+
+    function ShimmerCard() {
+      return (
+        <div style={{
+          background: c.surface, borderRadius: 16,
+          padding: '12px 16px',
+          display: 'flex', gap: 12, alignItems: 'flex-start',
+        }}>
+          <div className="shimmer-bar" style={{
+            width: 20, height: 20, borderRadius: 10,
+            flexShrink: 0, marginTop: 4,
+          }} />
+          <div style={{ flex: 1 }}>
+            <div className="shimmer-bar" style={{
+              borderRadius: 4, height: 15, width: '62%', marginBottom: 7,
+            }} />
+            <div className="shimmer-bar" style={{
+              borderRadius: 4, height: 13, width: '42%',
+            }} />
+          </div>
+        </div>
+      );
+    }
+
+    // ── SCREEN: Plan Creation B ────────────────────────────────────
+    // Submit-to-load variant. Phase: 'input' → 'loading' → 'loaded'
+
+    function PlanCreationScreenB({ onChoosePlan, variant = 'A' }) {
+      // Support ?phase=loaded URL param for Figma capture
+      const urlParams = new URLSearchParams(window.location.search);
+      const initPhase  = urlParams.get('phase') || 'input';
+      const kbClosed   = urlParams.get('kbclosed') === '1';
+      const initAmt    = urlParams.get('amt') || (initPhase !== 'input' || kbClosed ? '100' : '');
+
+      const [rawAmt, setRawAmt]           = useState(initAmt);
+      const [phase, setPhase]             = useState(initPhase);
+      const [selectedPlan, setSelectedPlan] = useState(initPhase === 'loaded' ? 'biweekly' : null);
+      const [keyboardOpen, setKeyboardOpen] = useState(initPhase === 'input' && !kbClosed);
+
+      const amt    = parseFloat(rawAmt) || 0;
+      const hasAmt = amt > 0;
+
+      const numpadRows = [['1','2','3'],['4','5','6'],['7','8','9'],['.',  '0','⌫']];
+
+      const handleKey = (k) => {
+        if (k === '⌫') {
+          setRawAmt(p => p.slice(0, -1));
+        } else if (k === '.') {
+          if (!rawAmt.includes('.')) setRawAmt(p => p + k);
+        } else {
+          if (rawAmt.length < 7) setRawAmt(p => p + k);
+        }
+      };
+
+      const handleSubmit = () => {
+        if (!hasAmt) return;
+        setKeyboardOpen(false);
+        setPhase('loading');
+        setTimeout(() => {
+          setPhase('loaded');
+          setSelectedPlan('biweekly');
+        }, 2200);
+      };
+
+      const handleEditAmount = () => {
+        setPhase('input');
+        setSelectedPlan(null);
+        setKeyboardOpen(true);
+      };
+
+      const fmt = n => n.toFixed(2);
+
+      const plans = [
+        {
+          id: 'biweekly',
+          payment: `$${fmt(amt / 4)}`,
+          frequency: 'every 2 weeks for 8 weeks',
+          interest: '$0 interest',
+          due: '$0 due today',
+          badge: '0% APR',
+          badgeBg: c.bdg,
+          badgeColor: c.bdgTxt,
+        },
+        {
+          id: 'monthly6',
+          payment: `$${fmt(amt / 6)}`,
+          frequency: 'every month for 6 months',
+          interest: `$${fmt(amt * 0.05)} interest`,
+          due: '$0 due today',
+        },
+        {
+          id: 'monthly12',
+          payment: `$${fmt(amt / 12)}`,
+          frequency: 'every month for 12 months',
+          interest: `$${fmt(amt * 0.044)} interest`,
+          due: '$0 due today',
+          badge: 'Lowest monthly payment',
+          badgeBg: c.bg,
+          badgeColor: c.sub,
+        },
+      ];
+
+      const selPlan = plans.find(p => p.id === selectedPlan);
+      const interest = !selectedPlan || selectedPlan === 'biweekly' ? 0
+        : selectedPlan === 'monthly6' ? amt * 0.05 : amt * 0.044;
+      const total = amt + interest;
+
+      return (
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column',
+          background: c.bg, position: 'relative', overflow: 'hidden',
+        }}>
+          <NavBar />
+
+          {/* Scrollable body */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 16px' }}>
+
+            {/* ── Step breadcrumb (variant B only) ── */}
+            {variant === 'B' && <Breadcrumb />}
+
+            {/* ── Page heading ── */}
+            <h1 style={{
+              fontFamily: "'Axiforma for Affirm', sans-serif",
+              fontWeight: 700, fontSize: 18,
+              color: c.text, margin: '2px 0 14px',
+              lineHeight: 1.35,
+            }}>
+              Show me payment plans for
+            </h1>
+
+            {/* ── Amount area ── */}
+            {phase === 'input' ? (
+              <div>
+                {/* Large amount display */}
+                <div style={{
+                  display: 'flex', alignItems: 'baseline', gap: 2,
+                  marginBottom: 10,
+                }}>
+                  <span style={{
+                    fontFamily: "'Axiforma for Affirm', sans-serif",
+                    fontWeight: 700, fontSize: 52, lineHeight: 1,
+                    color: rawAmt ? c.text : '#c0c0c8',
+                  }}>$</span>
+                  <span style={{
+                    fontFamily: "'Axiforma for Affirm', sans-serif",
+                    fontWeight: 700, fontSize: 52, lineHeight: 1,
+                    color: rawAmt ? c.text : '#c0c0c8',
+                    minWidth: 4,
+                  }}>
+                    {rawAmt || <span style={{ opacity: 0.45 }}>0</span>}
+                  </span>
+                  {keyboardOpen && (
+                    <span style={{
+                      width: 2.5, height: 50,
+                      background: c.accent, borderRadius: 2,
+                      animation: 'blink 1s step-end infinite',
+                      alignSelf: 'center', marginLeft: 1,
+                    }} />
+                  )}
+                </div>
+
+                {/* Purchasing power + CTA on same row */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  marginBottom: 20,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                      <path fillRule="evenodd" clipRule="evenodd" d="M10.1255 0.877899C10.7474 0.78009 11.3768 1.0009 11.8014 1.46576C12.1206 1.81541 12.2079 2.32198 12.2487 2.80343C12.2918 3.31184 12.2918 3.98903 12.2918 4.83643V4.86822V6.33332C12.2918 6.69367 12.2923 6.92634 12.3068 7.10342C12.3206 7.27321 12.3442 7.33616 12.3599 7.36707C12.4198 7.48467 12.5155 7.58028 12.6331 7.6402C12.664 7.65595 12.7269 7.67949 12.8967 7.69337C13.0738 7.70783 13.3065 7.70832 13.6668 7.70832H14.1722H14.2038C14.843 7.70831 15.366 7.7083 15.7702 7.74502C16.1695 7.78129 16.5802 7.86074 16.9024 8.11793C17.3487 8.47416 17.6083 9.01433 17.6077 9.58535C17.6072 9.9976 17.4127 10.368 17.1916 10.7024C16.9677 11.041 16.641 11.4494 16.2417 11.9485L16.222 11.9731L12.3832 16.7716L12.3634 16.7964C11.834 17.4581 11.411 17.9869 11.0597 18.357C10.7271 18.7074 10.3425 19.0485 9.87478 19.1221C9.25289 19.2199 8.62342 18.9991 8.19891 18.5342C7.87961 18.1846 7.7924 17.678 7.75157 17.1965C7.70845 16.6881 7.70846 16.0109 7.70846 15.1635V15.1318V13.6667C7.70846 13.3063 7.70798 13.0736 7.69351 12.8966C7.67964 12.7268 7.65609 12.6638 7.64034 12.6329C7.58042 12.5153 7.48481 12.4197 7.36721 12.3598C7.33631 12.344 7.27336 12.3205 7.10357 12.3066C6.92648 12.2921 6.69381 12.2917 6.33346 12.2917H5.82805H5.79645C5.15723 12.2917 4.63431 12.2917 4.23011 12.255C3.83079 12.2187 3.42005 12.1392 3.09786 11.882C2.65158 11.5258 2.39196 10.9856 2.39258 10.4146C2.39302 10.0024 2.58757 9.632 2.8087 9.29753C3.03253 8.95897 3.35922 8.55063 3.75855 8.05148L3.77827 8.02683L7.61702 3.22839L7.63685 3.2036C8.16622 2.54187 8.58926 2.01307 8.94054 1.64299C9.27318 1.29255 9.65774 0.951465 10.1255 0.877899Z" fill={c.accent} />
+                    </svg>
+                    <p style={{
+                      fontFamily: "'Calibre', sans-serif",
+                      fontSize: 14, color: c.sub, margin: 0,
+                    }}>
+                      <span style={{ color: c.link, textDecoration: 'underline', cursor: 'pointer' }}>Spend</span>
+                      {' '}up to $4,000
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleSubmit}
+                    disabled={!hasAmt}
+                    style={{
+                      background: hasAmt ? c.accent : '#d0d0da',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 999,
+                      padding: '9px 20px',
+                      fontSize: 15,
+                      fontWeight: 500,
+                      fontFamily: "'Calibre', sans-serif",
+                      cursor: hasAmt ? 'pointer' : 'default',
+                      transition: 'background 0.2s',
+                      letterSpacing: '0.1px',
+                    }}
+                  >
+                    {hasAmt ? 'See plans →' : 'See plans'}
+                  </button>
+                </div>
+
+                {/* Plans output area — variant-specific empty state */}
+                {variant === 'A' && (
+                  <>
+                    <div style={{ height: 1, background: c.div, marginBottom: 16 }} />
+                    <GhostPlansEmpty />
+                  </>
+                )}
+                {variant === 'C' && <UpNextCard />}
+                {variant === 'D' && <MiniCardRow />}
+              </div>
+            ) : (
+              /* Static amount display (loading + loaded phases) */
+              <div>
+                <div
+                  onClick={phase === 'loaded' ? handleEditAmount : undefined}
+                  style={{
+                    display: 'flex', alignItems: 'baseline', gap: 3,
+                    cursor: phase === 'loaded' ? 'pointer' : 'default',
+                    paddingBottom: 5,
+                    borderBottom: phase === 'loaded' ? `2px solid ${c.accent}` : 'none',
+                    width: 'fit-content',
+                    marginBottom: phase === 'loaded' ? 4 : 14,
+                  }}
+                >
+                  <span style={{
+                    fontFamily: "'Axiforma for Affirm', sans-serif",
+                    fontWeight: 700, fontSize: 52, lineHeight: 1,
+                    color: c.text,
+                  }}>$</span>
+                  <span style={{
+                    fontFamily: "'Axiforma for Affirm', sans-serif",
+                    fontWeight: 700, fontSize: 52, lineHeight: 1,
+                    color: c.text,
+                  }}>{rawAmt}</span>
+                  {phase === 'loaded' && (
+                    <img
+                      src="https://www.figma.com/api/mcp/asset/6d2137bb-0fa9-4f84-83ff-a4c62292c6d3"
+                      alt="edit"
+                      style={{
+                        width: 22, height: 22,
+                        alignSelf: 'center', marginLeft: 6, opacity: 0.4,
+                      }}
+                    />
+                  )}
+                </div>
+                {phase === 'loaded' && (
+                  <p style={{
+                    fontFamily: "'Calibre', sans-serif",
+                    fontSize: 12, color: c.accent,
+                    fontWeight: 500, margin: '0 0 14px',
+                  }}>Tap to edit</p>
+                )}
+
+                {/* ── Loading state ── */}
+                {phase === 'loading' && (
+                  <div className="fade-in">
+                    <p style={{
+                      fontFamily: "'Calibre', sans-serif",
+                      fontSize: 14, color: c.sub,
+                      margin: '0 0 14px', lineHeight: 1.4,
+                    }}>
+                      Loading custom plans...
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <ShimmerCard />
+                      <ShimmerCard />
+                      <ShimmerCard />
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Loaded state ── */}
+                {phase === 'loaded' && (
+                  <div className="fade-in">
+                    <p style={{
+                      fontFamily: "'Calibre', sans-serif",
+                      fontWeight: 600, fontSize: 17,
+                      color: c.text, margin: '0 0 10px',
+                    }}>Your plans</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                      {plans.map(plan => (
+                        <PlanCard
+                          key={plan.id}
+                          plan={plan}
+                          selected={selectedPlan === plan.id}
+                          onSelect={() => setSelectedPlan(plan.id)}
+                        />
+                      ))}
+                    </div>
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between',
+                      padding: '4px 4px', marginBottom: 10,
+                    }}>
+                      <span style={{ fontSize: 16, color: c.sub, fontFamily: "'Calibre', sans-serif" }}>
+                        Total of payments
+                      </span>
+                      <span style={{ fontSize: 16, fontWeight: 500, color: c.text, fontFamily: "'Calibre', sans-serif" }}>
+                        ${fmt(total)}
+                      </span>
+                    </div>
+                    <p style={{
+                      fontFamily: "'Calibre', sans-serif",
+                      fontSize: 14, color: c.sub,
+                      margin: '0 0 10px', lineHeight: '20px',
+                    }}>
+                      Payment amounts adjust to match what you actually spend.
+                    </p>
+                    <p style={{
+                      fontSize: 14, color: c.sub, textAlign: 'center',
+                      fontFamily: "'Calibre', sans-serif", lineHeight: 1.5,
+                    }}>
+                      <span style={{ color: c.link, textDecoration: 'underline' }}>Plans are subject</span>
+                      {' '}to final eligibility and approval.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Sticky CTA footer — only when plans loaded and plan selected ── */}
+          {phase === 'loaded' && selectedPlan && (
+            <div className="fade-in" style={{
+              padding: '10px 16px', flexShrink: 0,
+              borderTop: `1px solid ${c.div}`,
+              background: c.bg,
+            }}>
+              <PrimaryBtn onClick={() => onChoosePlan(selPlan, amt)}>
+                Continue to review
+              </PrimaryBtn>
+            </div>
+          )}
+
+          <HomeIndicator />
+
+          {/* ── Keyboard overlay ── */}
+          <div style={{
+            position: 'absolute',
+            bottom: 0, left: 0, right: 0,
+            transform: (phase === 'input' && keyboardOpen) ? 'translateY(0)' : 'translateY(110%)',
+            transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
+            zIndex: 10,
+          }}>
+            {/* iOS-style toolbar */}
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '6px 16px 4px',
+              background: '#e9e9ef',
+              borderTop: '0.5px solid #b5b5bf',
+            }}>
+              {/* Left side spacer */}
+              <span style={{ width: 60 }} />
+              {/* Right: "See plans" when amount entered, "Done" otherwise */}
+              <button
+                onClick={hasAmt ? handleSubmit : () => setKeyboardOpen(false)}
+                style={{
+                  background: 'none', border: 'none',
+                  color: hasAmt ? c.accent : c.sub,
+                  fontSize: 17, fontWeight: 600,
+                  fontFamily: "'Calibre', sans-serif",
+                  padding: '4px 8px',
+                  cursor: 'pointer',
+                  transition: 'color 0.15s',
+                }}
+              >
+                {hasAmt ? 'See plans' : 'Done'}
+              </button>
+            </div>
+
+            {/* Numpad grid */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+              gap: 3, padding: '6px 3px 4px',
+              background: '#cfd0d5',
+            }}>
+              {numpadRows.map((row, ri) =>
+                row.map(key => (
+                  <button
+                    key={`${ri}-${key}`}
+                    onClick={() => handleKey(key)}
+                    style={{
+                      padding: '14px 8px',
+                      background: key === '⌫' ? '#adb0b9' : '#ffffff',
+                      border: 'none', borderRadius: 8,
+                      fontSize: 22, fontWeight: 400,
+                      color: c.text,
+                      fontFamily: 'system-ui, sans-serif',
+                      boxShadow: '0 1px 0 rgba(0,0,0,0.3)',
+                    }}
+                  >{key}</button>
+                ))
+              )}
+            </div>
+
+            {/* Home indicator inside keyboard */}
+            <div style={{
+              display: 'flex', justifyContent: 'center',
+              paddingTop: 8, paddingBottom: 14,
+              background: '#cfd0d5',
+            }}>
+              <div style={{
+                width: 134, height: 5,
+                background: '#333', borderRadius: 3, opacity: 0.2,
+              }} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── SCREEN: Store Selection ────────────────────────────────────
+
+    const STORES = [
+      { id: 'bestbuy',   name: 'Best Buy',   color: '#003087', text: 'BB', offer: '0% APR',    featured: true  },
+      { id: 'target',    name: 'Target',     color: '#cc0000', text: 'T',  offer: 'Save $12',  featured: true  },
+      { id: 'apple',     name: 'Apple',      color: '#1c1c1e', text: '🍎', offer: '0% APR',    featured: true  },
+      { id: 'walmart',   name: 'Walmart',    color: '#0072ce', text: 'W',  offer: 'Featured',  featured: false },
+      { id: 'homedepot', name: 'Home Depot', color: '#ee6a00', text: 'HD', offer: 'Offers',    featured: false },
+      { id: 'costco',    name: 'Costco',     color: '#005dab', text: 'C',  offer: 'Member',    featured: false },
+    ];
+
+    function StoreSelectionScreen({ onSelect, onBack, onSkip }) {
+      const [query, setQuery] = useState('');
+      const filtered  = STORES.filter(s => !query || s.name.toLowerCase().includes(query.toLowerCase()));
+      const featured  = STORES.filter(s => s.featured);
+
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: c.bg }}>
+          <NavBar onBack={onBack} backLabel="Plans" />
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+            <h2 style={{
+              fontFamily: "'Axiforma for Affirm', sans-serif",
+              fontWeight: 700, fontSize: 22,
+              color: c.text, margin: '0 0 4px', lineHeight: 1.3,
+            }}>
+              Add a store for better rates
+            </h2>
+            <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 15, color: c.sub, margin: '0 0 20px' }}>
+              Featured stores unlock 0% APR and exclusive promotions
+            </p>
+            <p style={{ fontSize: 12, fontWeight: 600, color: c.sub, fontFamily: "'Calibre', sans-serif", textTransform: 'uppercase', letterSpacing: '0.6px', margin: '0 0 10px' }}>Featured</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
+              {featured.map(store => (
+                <button key={store.id} onClick={() => onSelect(store.name)} style={{
+                  background: store.color, borderRadius: 18, border: 'none', padding: '18px 8px 12px',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                }}>
+                  <span style={{ fontSize: store.text.length > 2 ? 24 : 22, fontWeight: 800, color: 'white', fontFamily: "'Axiforma for Affirm', sans-serif", lineHeight: 1 }}>{store.text}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.9)', fontFamily: "'Calibre', sans-serif", textAlign: 'center', lineHeight: 1.2 }}>{store.name}</span>
+                  <div style={{ background: 'rgba(255,255,255,0.16)', borderRadius: 20, padding: '3px 9px' }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#ffe999', fontFamily: "'Calibre', sans-serif" }}>{store.offer}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: 12, fontWeight: 600, color: c.sub, fontFamily: "'Calibre', sans-serif", textTransform: 'uppercase', letterSpacing: '0.6px', margin: '0 0 10px' }}>All stores</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: c.surface, borderRadius: 12, padding: '10px 14px', marginBottom: 8, border: `1px solid ${c.div}` }}>
+              <span style={{ fontSize: 17, opacity: 0.4 }}>🔍</span>
+              <input type="text" placeholder="Search stores..." value={query} onChange={e => setQuery(e.target.value)}
+                style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 17, color: c.text, fontFamily: "'Calibre', sans-serif", outline: 'none' }}
+              />
+            </div>
+            <div style={{ background: c.surface, borderRadius: 12, overflow: 'hidden' }}>
+              {filtered.map((store, i) => (
+                <button key={store.id} onClick={() => onSelect(store.name)} style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none',
+                  borderBottom: i < filtered.length - 1 ? `1px solid ${c.div}` : 'none',
+                  padding: '13px 16px', textAlign: 'left',
+                }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 10, background: store.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ color: 'white', fontWeight: 700, fontSize: 14 }}>{store.text}</span>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 17, color: c.text, fontFamily: "'Calibre', sans-serif", fontWeight: 500 }}>{store.name}</div>
+                    {store.featured && <div style={{ fontSize: 13, color: c.greenTxt, fontFamily: "'Calibre', sans-serif" }}>{store.offer} available</div>}
+                  </div>
+                  <span style={{ color: c.sub, fontSize: 22, lineHeight: 1 }}>›</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ padding: '12px 16px', background: c.bg, borderTop: `1px solid ${c.div}`, flexShrink: 0 }}>
+            <button onClick={onSkip} style={{ width: '100%', background: 'none', border: 'none', color: c.link, fontSize: 17, fontFamily: "'Calibre', sans-serif", padding: '10px', textDecoration: 'underline', cursor: 'pointer' }}>
+              No store nearby — skip this step
+            </button>
+          </div>
+          <HomeIndicator />
+        </div>
+      );
+    }
+
+    // ── SCREEN: Review ─────────────────────────────────────────────
+
+    function ReviewScreen({ plan, amount, storeName, onBack, onConfirm }) {
+      const interest = !plan ? 0 : plan.id === 'biweekly' ? 0 : plan.id === 'monthly6' ? amount * 0.05 : amount * 0.044;
+      const total = amount + interest;
+      const numPayments = !plan ? 4 : plan.id === 'biweekly' ? 4 : plan.id === 'monthly6' ? 6 : 12;
+      const planLabel = !plan || plan.id === 'biweekly' ? '4-payment, 0% APR' : plan.id === 'monthly6' ? '6-payment' : '12-payment';
+      const aprLabel = !plan || plan.id === 'biweekly' ? '0.00' : plan.id === 'monthly6' ? '5.00' : '4.40';
+      const fmt = n => n.toFixed(2);
+
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: c.bg, overflow: 'hidden' }}>
+          <NavBar onBack={onBack} backLabel="Plans" />
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 0' }}>
+            <h2 style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 24, lineHeight: '28px', color: c.text, margin: '0 0 16px' }}>
+              Review and activate your plan
+            </h2>
+
+            <div style={{ background: c.surface, borderRadius: 16, padding: '12px 16px 16px', marginBottom: 12 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 20, flexShrink: 0, marginTop: 3, lineHeight: 1 }}>📅</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 20, lineHeight: '28px', color: c.text, margin: 0 }}>
+                    {plan ? `${plan.payment} ${plan.frequency}` : '$25.00 every 2 weeks for 8 weeks'}
+                  </p>
+                  <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 18, lineHeight: '26px', color: c.text, margin: '0 0 12px' }}>
+                    {numPayments} payments
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0, marginBottom: 6 }}>
+                    {['Sep 12', 'Oct 12', null, 'Feb 12'].map((label, i) => {
+                      if (label === null) return (
+                        <div key={i} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 20 }}>
+                          <span style={{ color: c.sub, fontSize: 14, letterSpacing: 3, fontFamily: "'Calibre', sans-serif" }}>···</span>
+                        </div>
+                      );
+                      return (
+                        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: i === 3 ? 0 : 1 }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 16, border: `2.5px solid ${i === 0 ? c.accent : c.div}`, background: i === 0 ? c.accent : c.surface, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {i === 0 && <div style={{ width: 10, height: 10, borderRadius: 5, background: 'white' }} />}
+                          </div>
+                          <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.text, whiteSpace: 'nowrap' }}>{label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.sub, margin: 0 }}>These due dates are close estimates.</p>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ background: c.infoBg, borderRadius: 12, padding: '12px 14px', marginBottom: 12, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 20, lineHeight: '24px', flexShrink: 0 }}>🔄</span>
+              <div>
+                <p style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 16, color: c.text, margin: '0 0 3px' }}>Your {planLabel} plan is locked in</p>
+                <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 14, color: c.sub, margin: 0, lineHeight: 1.55 }}>
+                  Only the payment amounts update to match what you actually spend at checkout. The payment count and rate stay the same.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ background: c.surface, borderRadius: 16, padding: '12px 16px 16px', marginBottom: 16 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 20, flexShrink: 0, marginTop: 3, lineHeight: 1 }}>🧾</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 20, color: c.text }}>Due today</span>
+                    <span style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 20, color: c.text }}>$0.00</span>
+                  </div>
+                  {[
+                    ['Purchase amount', `$${fmt(amount || 0)}`],
+                    [`Interest (${aprLabel}% APR)`, `$${fmt(interest)}`],
+                    ['Total of payments', `$${fmt(total)}`],
+                  ].map(([label, val]) => (
+                    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                      <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 18, color: c.text }}>{label}</span>
+                      <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 18, color: c.text }}>{val}</span>
+                    </div>
+                  ))}
+                  <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.sub, margin: '8px 0 0', lineHeight: '24px' }}>
+                    Your plan total may adjust for store charges such as tax or shipping.{' '}
+                    <span style={{ color: c.link, textDecoration: 'underline', fontWeight: 500 }}>Learn more</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 18, color: c.text, margin: '0 0 12px' }}>Payment method</p>
+            <div style={{ background: c.surface, borderRadius: 12, padding: '5px 16px', marginBottom: 16 }}>
+              <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 13, fontWeight: 600, color: c.sub, textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>Payment Method — Debit</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 18, color: c.text }}>Mastercard 3456</span>
+                <span style={{ fontSize: 18, color: c.sub }}>⌄</span>
+              </div>
+            </div>
+
+            <div style={{ height: 1, background: c.div, marginBottom: 16 }} />
+
+            <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.text, margin: '0 0 16px', lineHeight: '24px' }}>
+              By continuing, you have reviewed and agree to the{' '}
+              <span style={{ color: c.link, textDecoration: 'underline', fontWeight: 500 }}>AutoPay Authorization</span>
+              {', the '}
+              <span style={{ color: c.link, textDecoration: 'underline', fontWeight: 500 }}>Payment Agreement & Disclosures</span>
+              {', and the '}
+              {storeName || 'merchant'}
+              {' refund policy.'}
+            </p>
+
+            <div style={{ background: c.surface, borderRadius: 16, padding: '12px 16px', marginBottom: 20 }}>
+              <p style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 18, color: c.text, margin: '0 0 4px' }}>
+                Your plan won't start until you check out
+              </p>
+              <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.sub, margin: 0, lineHeight: '24px' }}>
+                Head to checkout in stores or online. Pay anywhere Visa is accepted.
+              </p>
+            </div>
+
+            <button onClick={onConfirm} style={{
+              width: '100%', background: '#000049', color: '#f7f7f8', border: 'none',
+              borderRadius: 999, padding: '11px 24px', fontSize: 18, fontWeight: 500,
+              fontFamily: "'Calibre', sans-serif", lineHeight: '26px', cursor: 'pointer', marginBottom: 16,
+            }}>
+              Agree &amp; activate plan
+            </button>
+          </div>
+
+          <HomeIndicator />
+        </div>
+      );
+    }
+
+    // ── SCREEN: Success ────────────────────────────────────────────
+
+    function SuccessScreen({ onReset }) {
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: c.bg, alignItems: 'center', justifyContent: 'center', padding: '32px 24px', minHeight: 844 }}>
+          <div style={{ width: 80, height: 80, borderRadius: 40, background: c.greenBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, fontSize: 40 }}>✓</div>
+          <h2 style={{ fontFamily: "'Axiforma for Affirm', sans-serif", fontWeight: 700, fontSize: 26, color: c.text, textAlign: 'center', margin: '0 0 12px' }}>Plan added to Wallet</h2>
+          <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 17, color: c.sub, textAlign: 'center', lineHeight: 1.5, margin: '0 0 32px' }}>
+            Pay with your Affirm Card at checkout. Your plan starts when you complete your purchase.
+          </p>
+          <div style={{ background: c.warn, borderRadius: 12, padding: '14px 16px', width: '100%', marginBottom: 24 }}>
+            <p style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 600, fontSize: 16, color: c.text, margin: '0 0 4px' }}>Swipe anywhere Visa is accepted</p>
+            <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 15, color: c.sub, margin: 0 }}>Your payment amounts will update to match your final purchase.</p>
+          </div>
+          <button onClick={onReset} style={{ background: 'none', border: `1.5px solid ${c.div}`, borderRadius: 10, padding: '12px 24px', fontSize: 16, color: c.sub, fontFamily: "'Calibre', sans-serif", cursor: 'pointer' }}>
+            Start over (demo)
+          </button>
+        </div>
+      );
+    }
+
+    // ── App ────────────────────────────────────────────────────────
+
+    function App() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlScreen = urlParams.get('screen');
+
+      const urlVariant = urlParams.get('variant');
+      const [screen, setScreen]     = useState(urlScreen || 'plan');
+      const [storeName, setStoreName] = useState(null);
+      const [plan, setPlan]         = useState(null);
+      const [amount, setAmount]     = useState(0);
+      const [variant, setVariant]   = useState(urlVariant || 'A');
+
+      const tabs = [
+        { id: 'plan',   label: '① Plan Creation' },
+        { id: 'stores', label: '② Store Selection' },
+        { id: 'review', label: '③ Review' },
+      ];
+
+      const variants = [
+        { id: 'A', label: 'A: Ghost cards' },
+        { id: 'B', label: 'B: Breadcrumb' },
+        { id: 'C', label: 'C: Up next card' },
+        { id: 'D', label: 'D: Mini preview' },
+      ];
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+          {/* Variant tabs */}
+          <div style={{ width: 390, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <p style={{
+              fontFamily: "'Calibre', sans-serif",
+              fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)',
+              textTransform: 'uppercase', letterSpacing: '0.6px', margin: 0,
+            }}>Amount entry variant</p>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {variants.map(v => (
+                <button key={v.id} onClick={() => setVariant(v.id)} style={{
+                  flex: 1,
+                  background: variant === v.id ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)',
+                  border: variant === v.id ? '1px solid rgba(255,255,255,0.35)' : '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 8, padding: '7px 4px',
+                  fontSize: 11, fontWeight: variant === v.id ? 600 : 400,
+                  color: variant === v.id ? 'white' : 'rgba(255,255,255,0.4)',
+                  fontFamily: "'Calibre', sans-serif",
+                  cursor: 'pointer',
+                }}>{v.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Screen nav tabs */}
+          <div style={{ width: 390, display: 'flex', gap: 6 }}>
+            {tabs.map(tab => {
+              const active = screen === tab.id || (screen === 'storeSelect' && tab.id === 'stores');
+              return (
+                <button key={tab.id} onClick={() => setScreen(tab.id === 'stores' ? 'storeSelect' : tab.id)} style={{
+                  flex: 1,
+                  background: active ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: active ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 8, padding: '8px 4px',
+                  fontSize: 12, fontWeight: 500,
+                  color: active ? 'white' : 'rgba(255,255,255,0.45)',
+                  fontFamily: "'Calibre', sans-serif",
+                  cursor: 'pointer', whiteSpace: 'nowrap',
+                }}>{tab.label}</button>
+              );
+            })}
+          </div>
+
+          <div className="phone">
+            {screen === 'plan' && (
+              <PlanCreationScreenB
+                variant={variant}
+                onChoosePlan={(p, a) => { setPlan(p); setAmount(a); setScreen('review'); }}
+              />
+            )}
+            {screen === 'storeSelect' && (
+              <StoreSelectionScreen
+                onSelect={(name) => { setStoreName(name); setScreen('plan'); }}
+                onBack={() => setScreen('plan')}
+                onSkip={() => { setStoreName(null); setScreen('plan'); }}
+              />
+            )}
+            {screen === 'review' && (
+              <ReviewScreen
+                plan={plan}
+                amount={amount}
+                storeName={storeName}
+                onBack={() => setScreen('plan')}
+                onConfirm={() => setScreen('success')}
+              />
+            )}
+            {screen === 'success' && (
+              <SuccessScreen onReset={() => { setScreen('plan'); setStoreName(null); setPlan(null); setAmount(0); }} />
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+      @keyframes blink  { 0%,100%{opacity:1} 50%{opacity:0} }
+      @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+      @keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+    `;
+    document.head.appendChild(styleEl);
+
+    ReactDOM.createRoot(document.getElementById('root-v2b')).render(<App />);
+  </script>
+</body>
+</html>

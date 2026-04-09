@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apple Pay In-Store — V2 Concepts</title>
+  <style>
+    @font-face {
+      font-family: 'Calibre';
+      src: url('https://www.affirm.com/fonts/src/calibre-regular.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Calibre';
+      src: url('https://www.affirm.com/fonts/src/calibre-medium.woff2') format('woff2');
+      font-weight: 500;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Calibre';
+      src: url('https://www.affirm.com/fonts/src/calibre-semibold.woff2') format('woff2');
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Axiforma for Affirm';
+      src: url('https://www.affirm.com/fonts/src/AxiformaforAffirm.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Axiforma for Affirm';
+      src: url('https://www.affirm.com/fonts/src/AxiformaforAffirm-Medium.woff2') format('woff2');
+      font-weight: 500;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Axiforma for Affirm';
+      src: url('https://www.affirm.com/fonts/src/AxiformaforAffirm-Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Figma capture support -->
+  <script>
+    if (window.location.hash.includes('figmacapture=')) {
+      var s = document.createElement('script');
+      s.src = 'https://mcp.figma.com/mcp/html-to-design/capture.js';
+      s.async = true;
+      document.head.appendChild(s);
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 24px 64px;
+      font-family: 'Calibre', system-ui, -apple-system, sans-serif;
+    }
+    .phone {
+      width: 390px;
+      height: 844px;
+      background: #f2f2f4;
+      border-radius: 52px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 10px #2a2a2a, 0 0 0 11px #444;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .skeleton { animation: pulse 1.4s ease-in-out infinite; }
+    .fade-in { animation: fadeIn 0.25s ease forwards; }
+    button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    button:active { opacity: 0.75; }
+    input { outline: none; }
+    ::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body>
+  <!-- External chrome -->
+  <div id="main-header" style="width:390px;margin-bottom:20px;display:flex;flex-direction:column;gap:4px">
+    <h1 style="font-family:'Axiforma for Affirm', sans-serif;font-weight:700;font-size:20px;color:white;opacity:0.9">
+      Apple Pay In-Store — V2 Concepts
+    </h1>
+    <p style="font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(255,255,255,0.45)">
+      Exploratory prototype · not production code
+    </p>
+  </div>
+
+  <div id="main-proto"><div id="root"></div></div>
+
+  <!-- ── Pre-shopping framing exploration ────────────────────────── -->
+  <div id="preshop-header" style="width:390px;margin:52px auto 20px;display:flex;flex-direction:column;gap:6px">
+    <div style="height:1px;background:rgba(255,255,255,0.12);margin-bottom:20px"></div>
+    <h2 style="font-family:'Axiforma for Affirm',sans-serif;font-weight:700;font-size:20px;color:white;opacity:0.9;margin:0">
+      Exploration: Pre-shopping framing
+    </h2>
+    <p style="font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(255,255,255,0.45);margin:0;line-height:1.5">
+      Can reframing as "set up before you shop" reduce checkout anxiety?<br>
+      New entry screen + modified Plan Creation header (Figma Frame 3 variant).
+    </p>
+  </div>
+  <div id="root2"></div>
+
+  <script>
+    (function() {
+      var p = new URLSearchParams(location.search);
+      if (p.get('only') === 'preshop') {
+        function apply() {
+          ['main-header', 'main-proto', 'preshop-header'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+          });
+          document.body.style.paddingTop = '32px';
+        }
+        apply();
+        document.addEventListener('DOMContentLoaded', apply);
+      }
+    })();
+  </script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+
+    // ── Design tokens (from Figma) ──────────────────────────────────
+    const c = {
+      bg:       '#f2f2f4',
+      surface:  '#ffffff',
+      nav:      '#f3f4f2',
+      text:     '#0c0c14',
+      sub:      '#4b4b5c',
+      accent:   '#000061',
+      link:     '#000061',
+      bdg:      '#e2e2ff',
+      bdgTxt:   '#4242cf',
+      div:      '#cbcbd4',
+      warn:     '#fcf9e8',
+      infoBg:   '#f0f0ff',
+      greenBg:  '#eaf7f0',
+      greenTxt: '#1a6644',
+    };
+
+    // ── Shared primitives ───────────────────────────────────────────
+
+    function NavBar({ onBack, backLabel = 'Back', title }) {
+      return (
+        <div style={{
+          background: c.nav,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          height: 68,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          flexShrink: 0,
+        }}>
+          {onBack && (
+            <button onClick={onBack} style={{
+              position: 'absolute', left: 16,
+              background: 'rgba(0,0,0,0.07)',
+              border: '1.5px solid rgba(255,255,255,0.6)',
+              borderRadius: 999,
+              padding: '6px 12px',
+              display: 'flex', alignItems: 'center', gap: 3,
+              color: c.text, fontSize: 16,
+              fontFamily: "'Calibre', sans-serif",
+              fontWeight: 500,
+            }}>
+              ‹ {backLabel}
+            </button>
+          )}
+          <div style={{
+            background: 'white',
+            borderRadius: 10,
+            padding: '7px 14px',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+          }}>
+            <span style={{
+              fontSize: 21,
+              fontWeight: 800,
+              color: c.text,
+              fontFamily: "'Axiforma for Affirm', sans-serif",
+              letterSpacing: '-0.3px',
+            }}>affirm</span>
+          </div>
+        </div>
+      );
+    }
+
+    function PrimaryBtn({ children, onClick, disabled }) {
+      return (
+        <button onClick={onClick} disabled={disabled} style={{
+          width: '100%',
+          background: disabled ? '#9b9be8' : c.accent,
+          color: 'white',
+          border: 'none',
+          borderRadius: 10,
+          padding: '14px 24px',
+          fontSize: 18,
+          fontWeight: 600,
+          fontFamily: "'Calibre', sans-serif",
+          transition: 'background 0.15s',
+        }}>
+          {children}
+        </button>
+      );
+    }
+
+    function Badge({ label, icon, bg = c.bdg, color = c.bdgTxt }) {
+      return (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          background: bg, borderRadius: 8,
+          padding: '3px 10px 3px 8px',
+          marginBottom: 8,
+        }}>
+          {icon && <span style={{ fontSize: 14 }}>{icon}</span>}
+          <span style={{
+            fontSize: 14, fontWeight: 500, color,
+            fontFamily: "'Calibre', sans-serif",
+          }}>{label}</span>
+        </div>
+      );
+    }
+
+    function HomeIndicator() {
+      return (
+        <div style={{
+          display: 'flex', justifyContent: 'center',
+          paddingTop: 10, paddingBottom: 18, background: c.bg,
+          flexShrink: 0,
+        }}>
+          <div style={{
+            width: 134, height: 5,
+            background: c.text, borderRadius: 3, opacity: 0.2,
+          }} />
+        </div>
+      );
+    }
+
+    function InfoBox({ icon, title, body, bg = c.infoBg }) {
+      return (
+        <div style={{
+          background: bg, borderRadius: 12,
+          padding: '12px 14px',
+          display: 'flex', gap: 12, alignItems: 'flex-start',
+        }}>
+          <span style={{ fontSize: 22, lineHeight: '26px', flexShrink: 0 }}>{icon}</span>
+          <div>
+            {title && <p style={{
+              fontFamily: "'Calibre', sans-serif",
+              fontWeight: 600, fontSize: 15,
+              color: c.text, margin: '0 0 3px',
+            }}>{title}</p>}
+            <p style={{
+              fontFamily: "'Calibre', sans-serif",
+              fontSize: 14, color: c.sub,
+              margin: 0, lineHeight: 1.5,
+            }}>{body}</p>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Plan card ───────────────────────────────────────────────────
+
+    function PlanCard({ plan, selected, onSelect }) {
+      return (
+        <div onClick={onSelect} style={{
+          background: c.surface, borderRadius: 16,
+          border: selected ? `2px solid ${c.accent}` : '2px solid transparent',
+          padding: '12px 16px',
+          cursor: 'pointer',
+          transition: 'border-color 0.15s',
+          boxShadow: selected ? `0 0 0 1px ${c.accent}20` : 'none',
+        }}>
+          {plan.badge && (
+            <Badge
+              label={plan.badge}
+              icon={plan.badgeIcon}
+              bg={plan.badgeBg || c.bdg}
+              color={plan.badgeColor || c.bdgTxt}
+            />
+          )}
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <div style={{
+              width: 20, height: 20, borderRadius: 10, flexShrink: 0, marginTop: 5,
+              border: selected ? `6px solid ${c.accent}` : `2px solid ${c.div}`,
+              background: c.surface,
+              transition: 'border 0.15s',
+            }} />
+            <div style={{ flex: 1 }}>
+              <p style={{
+                fontFamily: "'Calibre', sans-serif",
+                color: c.text, margin: '0 0 4px',
+              }}>
+                <span style={{ fontSize: 20, fontWeight: 600 }}>{plan.payment}</span>
+                <span style={{ fontSize: 17 }}>{' '}{plan.frequency}</span>
+              </p>
+              <div style={{
+                display: 'flex', gap: 8, flexWrap: 'wrap',
+                fontSize: 16, color: c.sub,
+                fontFamily: "'Calibre', sans-serif",
+              }}>
+                {plan.strikeInterest
+                  ? <span><s style={{ opacity: 0.7 }}>{plan.strikeInterest}</s> $0 interest</span>
+                  : <span>{plan.interest}</span>
+                }
+                <span>·</span>
+                <span>{plan.due}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Skeleton card ───────────────────────────────────────────────
+
+    function SkeletonCard() {
+      return (
+        <div className="skeleton" style={{
+          background: c.surface, borderRadius: 16,
+          padding: '16px', display: 'flex', gap: 12, alignItems: 'flex-start',
+        }}>
+          <div style={{ width: 20, height: 20, borderRadius: 10, background: c.div, flexShrink: 0, marginTop: 4 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ background: c.div, borderRadius: 4, height: 18, width: '65%', marginBottom: 8 }} />
+            <div style={{ background: '#e5e5ea', borderRadius: 4, height: 15, width: '45%' }} />
+          </div>
+        </div>
+      );
+    }
+
+    // ── Journey breadcrumb ──────────────────────────────────────────
+
+    function Breadcrumb({ step }) {
+      const steps = ['Enter amount', 'Pick plan', 'Review'];
+      return (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 0,
+          padding: '6px 0 2px',
+        }}>
+          {steps.map((s, i) => (
+            <React.Fragment key={s}>
+              <span style={{
+                fontSize: 12,
+                fontFamily: "'Calibre', sans-serif",
+                fontWeight: i === step ? 600 : 400,
+                color: i < step ? c.accent : i === step ? c.text : c.sub,
+                opacity: i > step ? 0.5 : 1,
+                whiteSpace: 'nowrap',
+              }}>{s}</span>
+              {i < steps.length - 1 && (
+                <span style={{
+                  margin: '0 6px',
+                  color: c.div,
+                  fontSize: 12,
+                }}>›</span>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    }
+
+    // ── Store tile ──────────────────────────────────────────────────
+
+    const STORES = [
+      { id: 'bestbuy',   name: 'Best Buy',    color: '#003087', text: 'BB',  offer: '0% APR', featured: true },
+      { id: 'target',    name: 'Target',      color: '#cc0000', text: 'T',   offer: 'Save $12', featured: true },
+      { id: 'apple',     name: 'Apple',       color: '#1c1c1e', text: '🍎',  offer: '0% APR', featured: true },
+      { id: 'walmart',   name: 'Walmart',     color: '#0072ce', text: 'W',   offer: 'Featured', featured: false },
+      { id: 'homedepot', name: 'Home Depot',  color: '#ee6a00', text: 'HD',  offer: 'Offers', featured: false },
+      { id: 'costco',    name: 'Costco',      color: '#005dab', text: 'C',   offer: 'Member', featured: false },
+    ];
+
+    // ── SCREEN: Plan Creation ───────────────────────────────────────
+
+    function PlanCreationScreen({ hasStore, storeName, onChoosePlan, onOpenStoreSelect, onChangeStore, headerText }) {
+      const kbclosed = new URLSearchParams(window.location.search).get('kbclosed');
+      const [rawAmt, setRawAmt] = useState(kbclosed ? '100' : '');
+      const [plansState, setPlansState] = useState(kbclosed ? 'loaded' : 'empty'); // empty | loading | loaded
+      const [selectedPlan, setSelectedPlan] = useState(kbclosed ? 'biweekly' : null);
+      const [keyboardOpen, setKeyboardOpen] = useState(!kbclosed);
+
+      const numpadRows = [['1','2','3'],['4','5','6'],['7','8','9'],['.',  '0','⌫']];
+      const amt = parseFloat(rawAmt) || 0;
+
+      const handleKey = (k) => {
+        if (k === '⌫') {
+          setRawAmt(p => p.slice(0, -1));
+        } else if (k === '.') {
+          if (!rawAmt.includes('.')) setRawAmt(p => p + k);
+        } else {
+          if (rawAmt.length < 7) setRawAmt(p => p + k);
+        }
+      };
+
+      useEffect(() => {
+        if (!rawAmt || amt === 0) {
+          setPlansState('empty');
+          setSelectedPlan(null);
+          return;
+        }
+        setPlansState('loading');
+        setSelectedPlan(null);
+        const t = setTimeout(() => {
+          setPlansState('loaded');
+          setSelectedPlan('biweekly');
+        }, 1400);
+        return () => clearTimeout(t);
+      }, [rawAmt, hasStore]);
+
+      const fmt = (n) => n.toFixed(2);
+
+      const plans = hasStore ? [
+        {
+          id: 'biweekly',
+          payment: `$${fmt(amt / 4)}`,
+          frequency: 'every 2 weeks for 8 weeks',
+          interest: '$0 interest',
+          strikeInterest: `$${fmt(amt * 0.025)}`,
+          due: '$0 due today',
+          badge: 'Welcome Special — 0% APR',
+          badgeIcon: '🏷',
+          badgeBg: '#e2e2ff',
+          badgeColor: '#4242cf',
+        },
+        {
+          id: 'monthly6',
+          payment: `$${fmt(amt / 6)}`,
+          frequency: 'every month for 6 months',
+          interest: `$${fmt(amt * 0.05)} interest`,
+          due: '$0 due today',
+        },
+        {
+          id: 'monthly12',
+          payment: `$${fmt(amt / 12)}`,
+          frequency: 'every month for 12 months',
+          interest: `$${fmt(amt * 0.044)} interest`,
+          due: '$0 due today',
+          badge: 'Lowest monthly payment',
+          badgeBg: c.bg,
+          badgeColor: c.sub,
+        },
+      ] : [
+        {
+          id: 'biweekly',
+          payment: `$${fmt(amt / 4)}`,
+          frequency: 'every 2 weeks for 8 weeks',
+          interest: '$0 interest',
+          due: '$0 due today',
+          badge: '0% APR',
+          badgeBg: c.bdg,
+          badgeColor: c.bdgTxt,
+        },
+        {
+          id: 'monthly6',
+          payment: `$${fmt(amt / 6)}`,
+          frequency: 'every month for 6 months',
+          interest: `$${fmt(amt * 0.05)} interest`,
+          due: '$0 due today',
+        },
+        {
+          id: 'monthly12',
+          payment: `$${fmt(amt / 12)}`,
+          frequency: 'every month for 12 months',
+          interest: `$${fmt(amt * 0.044)} interest`,
+          due: '$0 due today',
+          badge: 'Lowest monthly payment',
+          badgeBg: c.bg,
+          badgeColor: c.sub,
+        },
+      ];
+
+      const selPlan = plans.find(p => p.id === selectedPlan);
+      const interest = selectedPlan === 'biweekly' ? 0 : selectedPlan === 'monthly6' ? amt * 0.05 : amt * 0.044;
+      const total = amt + interest;
+
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: c.bg, position: 'relative', overflow: 'hidden' }}>
+          <NavBar />
+
+          {/* Scrollable body */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '10px 16px 16px' }}>
+
+            {/* ── Journey breadcrumb (V2 Direction 5) ── */}
+            <Breadcrumb step={plansState === 'loaded' ? 1 : 0} />
+
+            {/* ── Section title (addresses "didn't know they were creating a plan") ── */}
+            <h1 style={{
+              fontFamily: "'Axiforma for Affirm', sans-serif",
+              fontWeight: 700, fontSize: 20,
+              color: c.text, marginTop: 6, marginBottom: 12,
+              lineHeight: 1.3,
+            }}>
+              {headerText || 'Set up your payment plan'}
+            </h1>
+
+            {/* ── Amount input ── */}
+            <div style={{ marginBottom: 14 }}>
+
+              {/* Big amount display — tappable to re-open keyboard */}
+              <div
+                onClick={() => setKeyboardOpen(true)}
+                style={{
+                  display: 'flex', alignItems: 'baseline', gap: 3,
+                  marginBottom: 4, cursor: 'pointer',
+                  paddingBottom: 5,
+                  borderBottom: !keyboardOpen
+                    ? `2.5px solid ${c.accent}`
+                    : '2.5px solid transparent',
+                  transition: 'border-color 0.2s',
+                  width: 'fit-content',
+                }}
+              >
+                <span style={{
+                  fontFamily: "'Axiforma for Affirm', sans-serif",
+                  fontWeight: 700, fontSize: 52, lineHeight: 1,
+                  color: rawAmt ? c.text : c.div,
+                }}>$</span>
+                <span style={{
+                  fontFamily: "'Axiforma for Affirm', sans-serif",
+                  fontWeight: 700, fontSize: 52, lineHeight: 1,
+                  color: rawAmt ? c.text : c.div,
+                  minWidth: 4,
+                }}>
+                  {rawAmt || <span style={{ opacity: 0.4 }}>0</span>}
+                </span>
+                {keyboardOpen ? (
+                  <span style={{
+                    width: 2.5, height: 50,
+                    background: c.accent, borderRadius: 2,
+                    animation: 'blink 1s step-end infinite',
+                    alignSelf: 'center',
+                  }} />
+                ) : (
+                  <img
+                    src="https://www.figma.com/api/mcp/asset/6d2137bb-0fa9-4f84-83ff-a4c62292c6d3"
+                    alt="edit"
+                    style={{
+                      width: 22, height: 22,
+                      alignSelf: 'center',
+                      marginLeft: 6, opacity: 0.4,
+                    }}
+                  />
+                )}
+              </div>
+              {keyboardOpen && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, margin: '2px 0 22px' }}>
+                  <img
+                    src="https://www.figma.com/api/mcp/asset/ac174b83-da5c-470d-a760-6057e1a052bc"
+                    alt=""
+                    style={{ width: 18, height: 18, flexShrink: 0 }}
+                  />
+                  <p style={{
+                    fontFamily: "'Calibre', sans-serif",
+                    fontSize: 15, color: c.text, margin: 0,
+                  }}>
+                    <span style={{ color: c.link, textDecoration: 'underline', cursor: 'pointer' }}>Spend</span>
+                    {' '}up to $4,000
+                  </p>
+                </div>
+              )}
+              {!keyboardOpen && (
+                <p style={{
+                  fontFamily: "'Calibre', sans-serif",
+                  fontSize: 12, color: c.accent,
+                  fontWeight: 500, margin: '0 0 8px',
+                }}>Tap to edit</p>
+              )}
+
+              {/* Store pill (shown when store is selected) */}
+              {hasStore ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    background: '#f0f0ff', borderRadius: 20,
+                    padding: '4px 10px 4px 8px',
+                  }}>
+                    <span style={{ fontSize: 15 }}>🏪</span>
+                    <span style={{
+                      fontFamily: "'Calibre', sans-serif",
+                      fontSize: 15, fontWeight: 500, color: c.link,
+                    }}>{storeName}</span>
+                  </div>
+                  <button onClick={onChangeStore} style={{
+                    background: 'none', border: 'none',
+                    fontSize: 14, color: c.link,
+                    fontFamily: "'Calibre', sans-serif",
+                    textDecoration: 'underline', padding: 0,
+                  }}>change</button>
+                </div>
+              ) : null}
+            </div>
+
+            {/* ── Plans section ── */}
+            {plansState !== 'empty' && (
+              <div className="fade-in" style={{ marginBottom: 16 }}>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  alignItems: 'center', marginBottom: 8,
+                }}>
+                  <p style={{
+                    fontFamily: "'Calibre', sans-serif",
+                    fontWeight: 600, fontSize: 18,
+                    color: c.text, margin: 0,
+                  }}>Your payment plan</p>
+                  {plansState === 'loading' && (
+                    <span style={{
+                      fontSize: 13, color: c.sub,
+                      fontFamily: "'Calibre', sans-serif",
+                    }}>Loading...</span>
+                  )}
+                </div>
+
+                {plansState === 'loading' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <SkeletonCard /><SkeletonCard /><SkeletonCard />
+                  </div>
+                ) : (
+                  <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {plans.map(plan => (
+                      <PlanCard
+                        key={plan.id}
+                        plan={plan}
+                        selected={selectedPlan === plan.id}
+                        onSelect={() => setSelectedPlan(plan.id)}
+                      />
+                    ))}
+
+                    {/* Total row */}
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between',
+                      padding: '4px 4px', marginTop: 2,
+                    }}>
+                      <span style={{ fontSize: 16, color: c.sub, fontFamily: "'DM Sans',sans-serif" }}>
+                        Total of payments
+                      </span>
+                      <span style={{ fontSize: 16, fontWeight: 500, color: c.text, fontFamily: "'DM Sans',sans-serif" }}>
+                        ${fmt(total)}
+                      </span>
+                    </div>
+
+                    {/* ── Quiet reassurance line — surfaces where anxiety peaks ── */}
+                    <p style={{
+                      fontFamily: "'Calibre', sans-serif",
+                      fontSize: 14, color: c.sub,
+                      margin: '2px 4px 0', lineHeight: '20px',
+                    }}>
+                      Payment amounts adjust to match what you actually spend.
+                    </p>
+
+                    {/* ── NEW: Store tiles (V2 Direction 2) — shown only if no store yet ── */}
+                    {!hasStore && (
+                      <div style={{
+                        background: c.surface, borderRadius: 16,
+                        padding: '14px 16px',
+                      }}>
+                        <div style={{
+                          display: 'flex', justifyContent: 'space-between',
+                          alignItems: 'center', marginBottom: 4,
+                        }}>
+                          <p style={{
+                            fontFamily: "'DM Sans',sans-serif",
+                            fontWeight: 600, fontSize: 16,
+                            color: c.text, margin: 0,
+                          }}>Add a store for better rates</p>
+                        </div>
+                        <p style={{
+                          fontFamily: "'DM Sans',sans-serif",
+                          fontSize: 13, color: c.sub,
+                          margin: '0 0 12px',
+                        }}>
+                          Featured stores unlock 0% APR and exclusive offers
+                        </p>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {STORES.filter(s => s.featured).map(store => (
+                            <button
+                              key={store.id}
+                              onClick={() => onChoosePlan && onOpenStoreSelect && (() => {})()}
+                              style={{
+                                flex: 1, background: store.color,
+                                borderRadius: 14, border: 'none',
+                                padding: '10px 4px 8px',
+                                display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', gap: 4,
+                              }}
+                            >
+                              <span style={{
+                                fontSize: store.text.length > 2 ? 18 : 17,
+                                fontWeight: 700, color: 'white',
+                                fontFamily: "'Axiforma for Affirm', sans-serif",
+                              }}>{store.text}</span>
+                              <span style={{
+                                fontSize: 11, color: 'rgba(255,255,255,0.85)',
+                                fontFamily: "'DM Sans',sans-serif",
+                                lineHeight: 1.2, textAlign: 'center',
+                              }}>{store.name}</span>
+                              <span style={{
+                                fontSize: 11, fontWeight: 600,
+                                color: '#ffe999',
+                                fontFamily: "'DM Sans',sans-serif",
+                              }}>{store.offer}</span>
+                            </button>
+                          ))}
+                          <button
+                            onClick={onOpenStoreSelect}
+                            style={{
+                              flex: 1, background: '#e5e5ea',
+                              borderRadius: 14, border: 'none',
+                              padding: '10px 4px 8px',
+                              display: 'flex', flexDirection: 'column',
+                              alignItems: 'center', gap: 6, color: c.sub,
+                              fontFamily: "'DM Sans',sans-serif",
+                            }}
+                          >
+                            <span style={{ fontSize: 20, lineHeight: 1 }}>+</span>
+                            <span style={{ fontSize: 11 }}>More</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Disclosure */}
+                    <p style={{
+                      fontSize: 14, color: c.sub, textAlign: 'center',
+                      fontFamily: "'DM Sans',sans-serif", lineHeight: 1.5,
+                    }}>
+                      <span style={{ color: c.link, textDecoration: 'underline' }}>Plans are subject</span>
+                      {' '}to final eligibility and approval.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── CTA sticky footer (only when keyboard is dismissed and a plan is selected) ── */}
+          {!keyboardOpen && plansState === 'loaded' && selectedPlan && (
+            <div className="fade-in" style={{
+              padding: '10px 16px', flexShrink: 0,
+              borderTop: `1px solid ${c.div}`, background: c.bg,
+            }}>
+              <PrimaryBtn onClick={() => onChoosePlan(selPlan, amt)}>
+                Choose this plan
+              </PrimaryBtn>
+            </div>
+          )}
+
+          <HomeIndicator />
+
+          {/* ── Keyboard panel — absolute overlay that slides up from bottom ── */}
+          <div style={{
+            position: 'absolute',
+            bottom: 0, left: 0, right: 0,
+            transform: keyboardOpen ? 'translateY(0)' : 'translateY(110%)',
+            transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
+            zIndex: 10,
+          }}>
+            {/* iOS-style toolbar with Done button */}
+            <div style={{
+              display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
+              padding: '6px 16px 4px',
+              background: '#e9e9ef',
+              borderTop: '0.5px solid #b5b5bf',
+            }}>
+              <button
+                onClick={() => setKeyboardOpen(false)}
+                style={{
+                  background: 'none', border: 'none',
+                  color: c.accent, fontSize: 17, fontWeight: 600,
+                  fontFamily: "'DM Sans',sans-serif",
+                  padding: '4px 8px',
+                }}
+              >Done</button>
+            </div>
+
+            {/* Numpad grid */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+              gap: 3, padding: '6px 3px 4px',
+              background: '#cfd0d5',
+            }}>
+              {numpadRows.map((row, ri) =>
+                row.map(key => (
+                  <button
+                    key={`${ri}-${key}`}
+                    onClick={() => handleKey(key)}
+                    style={{
+                      padding: '14px 8px',
+                      background: key === '⌫' ? '#adb0b9' : '#ffffff',
+                      border: 'none', borderRadius: 8,
+                      fontSize: 22, fontWeight: 400,
+                      color: c.text,
+                      fontFamily: "'DM Sans',sans-serif",
+                      boxShadow: '0 1px 0 rgba(0,0,0,0.3)',
+                    }}
+                  >{key}</button>
+                ))
+              )}
+            </div>
+
+            {/* Home indicator area inside keyboard panel */}
+            <div style={{
+              display: 'flex', justifyContent: 'center',
+              paddingTop: 8, paddingBottom: 14,
+              background: '#cfd0d5',
+            }}>
+              <div style={{
+                width: 134, height: 5,
+                background: '#333', borderRadius: 3, opacity: 0.2,
+              }} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── SCREEN: Store Selection (V2 tile design) ────────────────────
+
+    function StoreSelectionScreen({ onSelect, onBack, onSkip }) {
+      const [query, setQuery] = useState('');
+
+      const filtered = STORES.filter(s =>
+        !query || s.name.toLowerCase().includes(query.toLowerCase())
+      );
+      const featured = STORES.filter(s => s.featured);
+
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: c.bg }}>
+          <NavBar onBack={onBack} backLabel="Plans" />
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+            <h2 style={{
+              fontFamily: "'Axiforma for Affirm', sans-serif",
+              fontWeight: 700, fontSize: 22,
+              color: c.text, margin: '0 0 4px', lineHeight: 1.3,
+            }}>
+              Add a store for better rates
+            </h2>
+            <p style={{
+              fontFamily: "'DM Sans',sans-serif",
+              fontSize: 15, color: c.sub, margin: '0 0 20px',
+            }}>
+              Featured stores unlock 0% APR and exclusive promotions
+            </p>
+
+            {/* Featured tiles grid */}
+            <p style={{
+              fontSize: 12, fontWeight: 600, color: c.sub,
+              fontFamily: "'DM Sans',sans-serif",
+              textTransform: 'uppercase', letterSpacing: '0.6px',
+              margin: '0 0 10px',
+            }}>Featured</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
+              {featured.map(store => (
+                <button
+                  key={store.id}
+                  onClick={() => onSelect(store.name)}
+                  style={{
+                    background: store.color, borderRadius: 18,
+                    border: 'none', padding: '18px 8px 12px',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: 6,
+                  }}
+                >
+                  <span style={{
+                    fontSize: store.text.length > 2 ? 24 : 22,
+                    fontWeight: 800, color: 'white',
+                    fontFamily: "'Axiforma for Affirm', sans-serif",
+                    lineHeight: 1,
+                  }}>{store.text}</span>
+                  <span style={{
+                    fontSize: 13, fontWeight: 500,
+                    color: 'rgba(255,255,255,0.9)',
+                    fontFamily: "'DM Sans',sans-serif",
+                    textAlign: 'center', lineHeight: 1.2,
+                  }}>{store.name}</span>
+                  <div style={{
+                    background: 'rgba(255,255,255,0.16)',
+                    borderRadius: 20, padding: '3px 9px',
+                  }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 600,
+                      color: '#ffe999',
+                      fontFamily: "'DM Sans',sans-serif",
+                    }}>{store.offer}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Search */}
+            <p style={{
+              fontSize: 12, fontWeight: 600, color: c.sub,
+              fontFamily: "'DM Sans',sans-serif",
+              textTransform: 'uppercase', letterSpacing: '0.6px',
+              margin: '0 0 10px',
+            }}>All stores</p>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: c.surface, borderRadius: 12,
+              padding: '10px 14px', marginBottom: 8,
+              border: `1px solid ${c.div}`,
+            }}>
+              <span style={{ fontSize: 17, opacity: 0.4 }}>🔍</span>
+              <input
+                type="text" placeholder="Search stores..."
+                value={query} onChange={e => setQuery(e.target.value)}
+                style={{
+                  flex: 1, border: 'none', background: 'transparent',
+                  fontSize: 17, color: c.text,
+                  fontFamily: "'DM Sans',sans-serif",
+                }}
+              />
+            </div>
+
+            <div style={{
+              background: c.surface, borderRadius: 12,
+              overflow: 'hidden',
+            }}>
+              {filtered.map((store, i) => (
+                <button
+                  key={store.id}
+                  onClick={() => onSelect(store.name)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center',
+                    gap: 12, background: 'none', border: 'none',
+                    borderBottom: i < filtered.length - 1 ? `1px solid ${c.div}` : 'none',
+                    padding: '13px 16px', textAlign: 'left',
+                  }}
+                >
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10,
+                    background: store.color,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <span style={{ color: 'white', fontWeight: 700, fontSize: 14 }}>{store.text}</span>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 17, color: c.text, fontFamily: "'DM Sans',sans-serif", fontWeight: 500 }}>
+                      {store.name}
+                    </div>
+                    {store.featured && (
+                      <div style={{ fontSize: 13, color: c.greenTxt, fontFamily: "'DM Sans',sans-serif" }}>
+                        {store.offer} available
+                      </div>
+                    )}
+                  </div>
+                  <span style={{ color: c.sub, fontSize: 22, lineHeight: 1 }}>›</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{
+            padding: '12px 16px',
+            background: c.bg, borderTop: `1px solid ${c.div}`,
+            flexShrink: 0,
+          }}>
+            <button onClick={onSkip} style={{
+              width: '100%', background: 'none', border: 'none',
+              color: c.link, fontSize: 17,
+              fontFamily: "'DM Sans',sans-serif",
+              padding: '10px', textDecoration: 'underline',
+            }}>
+              No store nearby — skip this step
+            </button>
+          </div>
+          <HomeIndicator />
+        </div>
+      );
+    }
+
+    // ── SCREEN: Review ──────────────────────────────────────────────
+
+    function ReviewScreen({ plan, amount, storeName, onConfirm, onBack }) {
+      const interest = !plan ? 0 : plan.id === 'biweekly' ? 0 : plan.id === 'monthly6' ? amount * 0.05 : amount * 0.044;
+      const total = amount + interest;
+      const numPayments = !plan ? 4 : plan.id === 'biweekly' ? 4 : plan.id === 'monthly6' ? 6 : 12;
+      const planLabel = !plan ? '4-payment, 0% APR' : plan.id === 'biweekly' ? '4-payment, 0% APR' : plan.id === 'monthly6' ? '6-payment' : '12-payment';
+      const aprLabel = !plan || plan.id === 'biweekly' ? '0.00' : plan.id === 'monthly6' ? '5.00' : '4.40';
+      const fmt = n => n.toFixed(2);
+
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: c.bg, overflow: 'hidden' }}>
+          <NavBar onBack={onBack} backLabel="Plans" />
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 0' }}>
+
+            <h2 style={{
+              fontFamily: "'Calibre', sans-serif",
+              fontWeight: 500, fontSize: 24, lineHeight: '28px',
+              color: c.text, margin: '0 0 16px',
+            }}>
+              Review and activate your plan
+            </h2>
+
+            {/* ── Plan info panel ── */}
+            <div style={{
+              background: c.surface, borderRadius: 16,
+              padding: '12px 16px 16px', marginBottom: 12,
+            }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 20, flexShrink: 0, marginTop: 3, lineHeight: 1 }}>📅</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{
+                    fontFamily: "'Calibre', sans-serif",
+                    fontWeight: 500, fontSize: 20, lineHeight: '28px',
+                    color: c.text, margin: 0,
+                  }}>
+                    {plan ? `${plan.payment} ${plan.frequency}` : '$25.00 every 2 weeks for 8 weeks'}
+                  </p>
+                  <p style={{
+                    fontFamily: "'Calibre', sans-serif",
+                    fontWeight: 400, fontSize: 18, lineHeight: '26px',
+                    color: c.text, margin: '0 0 12px',
+                  }}>
+                    {numPayments} payments
+                  </p>
+
+                  {/* Payment schedule */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0, marginBottom: 6 }}>
+                    {['Sep 12', 'Oct 12', null, 'Feb 12'].map((label, i) => {
+                      if (label === null) return (
+                        <div key={i} style={{
+                          flex: 1, display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', paddingBottom: 20,
+                        }}>
+                          <span style={{ color: c.sub, fontSize: 14, letterSpacing: 3, fontFamily: "'Calibre', sans-serif" }}>···</span>
+                        </div>
+                      );
+                      return (
+                        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: i === 3 ? 0 : 1 }}>
+                          <div style={{
+                            width: 32, height: 32, borderRadius: 16,
+                            border: `2.5px solid ${i === 0 ? c.accent : c.div}`,
+                            background: i === 0 ? c.accent : c.surface,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            {i === 0 && <div style={{ width: 10, height: 10, borderRadius: 5, background: 'white' }} />}
+                          </div>
+                          <span style={{
+                            fontFamily: "'Calibre', sans-serif",
+                            fontSize: 16, fontWeight: 400, lineHeight: '20px',
+                            color: c.text, whiteSpace: 'nowrap',
+                          }}>{label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p style={{
+                    fontFamily: "'Calibre', sans-serif",
+                    fontSize: 16, color: c.sub, margin: 0, lineHeight: '20px',
+                  }}>
+                    These due dates are close estimates.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ── V2: Plan locked-in info box ── */}
+            <div style={{
+              background: c.infoBg, borderRadius: 12,
+              padding: '12px 14px', marginBottom: 12,
+              display: 'flex', gap: 12, alignItems: 'flex-start',
+            }}>
+              <span style={{ fontSize: 20, lineHeight: '24px', flexShrink: 0 }}>🔄</span>
+              <div>
+                <p style={{
+                  fontFamily: "'Calibre', sans-serif",
+                  fontWeight: 500, fontSize: 16, lineHeight: '20px',
+                  color: c.text, margin: '0 0 3px',
+                }}>
+                  Your {planLabel} plan is locked in
+                </p>
+                <p style={{
+                  fontFamily: "'Calibre', sans-serif",
+                  fontSize: 14, color: c.sub,
+                  margin: 0, lineHeight: 1.55,
+                }}>
+                  Only the payment amounts update to match what you actually spend at checkout. The payment count and rate stay the same.
+                </p>
+              </div>
+            </div>
+
+            {/* ── Due today panel ── */}
+            <div style={{
+              background: c.surface, borderRadius: 16,
+              padding: '12px 16px 16px', marginBottom: 16,
+            }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 20, flexShrink: 0, marginTop: 3, lineHeight: 1 }}>🧾</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span style={{
+                      fontFamily: "'Calibre', sans-serif",
+                      fontWeight: 500, fontSize: 20, lineHeight: '28px', color: c.text,
+                    }}>Due today</span>
+                    <span style={{
+                      fontFamily: "'Calibre', sans-serif",
+                      fontWeight: 500, fontSize: 20, lineHeight: '28px', color: c.text,
+                    }}>$0.00</span>
+                  </div>
+                  {[
+                    ['Purchase amount', `$${fmt(amount || 0)}`],
+                    [`Interest (${aprLabel}% APR)`, `$${fmt(interest)}`],
+                    ['Total of payments', `$${fmt(total)}`],
+                  ].map(([label, val]) => (
+                    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                      <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 18, lineHeight: '24px', color: c.text }}>{label}</span>
+                      <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 18, lineHeight: '24px', color: c.text }}>{val}</span>
+                    </div>
+                  ))}
+                  <p style={{
+                    fontFamily: "'Calibre', sans-serif",
+                    fontSize: 16, color: c.sub,
+                    margin: '8px 0 0', lineHeight: '24px',
+                  }}>
+                    Your plan total may adjust for store charges such as tax or shipping.{' '}
+                    <span style={{ color: c.link, textDecoration: 'underline', fontWeight: 500 }}>Learn more</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Payment method ── */}
+            <p style={{
+              fontFamily: "'Calibre', sans-serif",
+              fontWeight: 500, fontSize: 18, lineHeight: '24px',
+              color: c.text, margin: '0 0 12px',
+            }}>Payment method</p>
+            <div style={{
+              background: c.surface, borderRadius: 12,
+              padding: '5px 16px', marginBottom: 16,
+            }}>
+              <p style={{
+                fontFamily: "'Calibre', sans-serif",
+                fontSize: 13, fontWeight: 600,
+                color: c.sub, textTransform: 'uppercase',
+                letterSpacing: '0.5px', lineHeight: '20px', margin: 0,
+              }}>Payment Method — Debit</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 18, lineHeight: '26px', color: c.text }}>
+                  Mastercard 3456
+                </span>
+                <span style={{ fontSize: 18, color: c.sub, lineHeight: 1 }}>⌄</span>
+              </div>
+            </div>
+
+            {/* ── Divider ── */}
+            <div style={{ height: 1, background: c.div, marginBottom: 16 }} />
+
+            {/* ── Disclosure (no checkbox — matches Figma) ── */}
+            <p style={{
+              fontFamily: "'Calibre', sans-serif",
+              fontSize: 16, color: c.text,
+              margin: '0 0 16px', lineHeight: '24px',
+            }}>
+              By continuing, you have reviewed and agree to the{' '}
+              <span style={{ color: c.link, textDecoration: 'underline', fontWeight: 500 }}>AutoPay Authorization</span>
+              {', the '}
+              <span style={{ color: c.link, textDecoration: 'underline', fontWeight: 500 }}>Payment Agreement & Disclosures</span>
+              {', and the '}
+              {storeName || 'merchant'}
+              {' refund policy.'}
+            </p>
+
+            {/* ── "Plan won't start" — white card (matches Figma) ── */}
+            <div style={{
+              background: c.surface, borderRadius: 16,
+              padding: '12px 16px', marginBottom: 20,
+            }}>
+              <p style={{
+                fontFamily: "'Calibre', sans-serif",
+                fontWeight: 500, fontSize: 18, lineHeight: '26px',
+                color: c.text, margin: '0 0 4px',
+              }}>
+                Your plan won't start until you check out
+              </p>
+              <p style={{
+                fontFamily: "'Calibre', sans-serif",
+                fontSize: 16, lineHeight: '24px',
+                color: c.sub, margin: 0,
+              }}>
+                Head to checkout in stores or online. Pay anywhere Visa is accepted.
+              </p>
+            </div>
+
+            {/* ── CTA — pill shape, #000049, matches Figma ── */}
+            <button
+              onClick={onConfirm}
+              style={{
+                width: '100%',
+                background: '#000049',
+                color: '#f7f7f8',
+                border: 'none',
+                borderRadius: 999,
+                padding: '11px 24px',
+                fontSize: 18, fontWeight: 500,
+                fontFamily: "'Calibre', sans-serif",
+                lineHeight: '26px',
+                cursor: 'pointer',
+                marginBottom: 16,
+              }}
+            >
+              Agree &amp; activate plan
+            </button>
+          </div>
+
+          <HomeIndicator />
+        </div>
+      );
+    }
+
+    // ── SCREEN: Success ─────────────────────────────────────────────
+
+    function SuccessScreen({ onReset }) {
+      return (
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column',
+          background: c.bg, alignItems: 'center',
+          justifyContent: 'center', padding: '32px 24px',
+          minHeight: 844,
+        }}>
+          <div style={{
+            width: 80, height: 80, borderRadius: 40,
+            background: c.greenBg,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 24, fontSize: 40,
+          }}>✓</div>
+          <h2 style={{
+            fontFamily: "'Axiforma for Affirm', sans-serif",
+            fontWeight: 700, fontSize: 26,
+            color: c.text, textAlign: 'center',
+            margin: '0 0 12px',
+          }}>Plan added to Wallet</h2>
+          <p style={{
+            fontFamily: "'DM Sans',sans-serif",
+            fontSize: 17, color: c.sub,
+            textAlign: 'center', lineHeight: 1.5,
+            margin: '0 0 32px',
+          }}>
+            Pay with your Affirm Card at checkout. Your plan starts when you complete your purchase.
+          </p>
+          <div style={{
+            background: c.warn, borderRadius: 12,
+            padding: '14px 16px', width: '100%', marginBottom: 24,
+          }}>
+            <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 600, fontSize: 16, color: c.text, margin: '0 0 4px' }}>
+              Swipe anywhere Visa is accepted
+            </p>
+            <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 15, color: c.sub, margin: 0 }}>
+              Your payment amounts will update to match your final purchase.
+            </p>
+          </div>
+          <button onClick={onReset} style={{
+            background: 'none', border: `1.5px solid ${c.div}`,
+            borderRadius: 10, padding: '12px 24px',
+            fontSize: 16, color: c.sub, fontFamily: "'DM Sans',sans-serif",
+            cursor: 'pointer',
+          }}>
+            Start over (demo)
+          </button>
+        </div>
+      );
+    }
+
+    // ── Root App ────────────────────────────────────────────────────
+
+    function App() {
+      const urlScreen = new URLSearchParams(window.location.search).get('screen');
+      const [screen, setScreen] = useState(urlScreen || 'plan');
+      const [hasStore, setHasStore] = useState(false);
+      const [storeName, setStoreName] = useState(null);
+      const [plan, setPlan] = useState(null);
+      const [amount, setAmount] = useState(0);
+
+      // External nav tabs (outside phone, for quick jumping between screens)
+      const tabs = [
+        { id: 'plan', label: '① Plan Creation' },
+        { id: 'stores', label: '② Store Selection' },
+        { id: 'review', label: '③ Review' },
+      ];
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+          {/* Screen nav tabs */}
+          <div style={{
+            width: 390,
+            display: 'flex', gap: 6,
+          }}>
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setScreen(tab.id === 'stores' ? 'storeSelect' : tab.id)}
+                style={{
+                  flex: 1,
+                  background: screen === tab.id || (screen === 'storeSelect' && tab.id === 'stores')
+                    ? 'rgba(255,255,255,0.15)'
+                    : 'rgba(255,255,255,0.05)',
+                  border: screen === tab.id || (screen === 'storeSelect' && tab.id === 'stores')
+                    ? '1px solid rgba(255,255,255,0.3)'
+                    : '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 8, padding: '8px 4px',
+                  fontSize: 12, fontWeight: 500,
+                  color: screen === tab.id || (screen === 'storeSelect' && tab.id === 'stores')
+                    ? 'white'
+                    : 'rgba(255,255,255,0.45)',
+                  fontFamily: "'DM Sans',sans-serif",
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >{tab.label}</button>
+            ))}
+          </div>
+
+          <div className="phone">
+            {screen === 'plan' && (
+              <PlanCreationScreen
+                hasStore={hasStore}
+                storeName={storeName}
+                onChoosePlan={(p, a) => { setPlan(p); setAmount(a); setScreen('review'); }}
+                onOpenStoreSelect={() => setScreen('storeSelect')}
+                onChangeStore={() => setScreen('storeSelect')}
+              />
+            )}
+            {screen === 'storeSelect' && (
+              <StoreSelectionScreen
+                onSelect={(name) => { setHasStore(true); setStoreName(name); setScreen('plan'); }}
+                onBack={() => setScreen('plan')}
+                onSkip={() => { setHasStore(false); setStoreName(null); setScreen('plan'); }}
+              />
+            )}
+            {screen === 'review' && (
+              <ReviewScreen
+                plan={plan}
+                amount={amount}
+                storeName={storeName}
+                onBack={() => setScreen('plan')}
+                onConfirm={() => setScreen('success')}
+              />
+            )}
+            {screen === 'success' && (
+              <SuccessScreen onReset={() => { setScreen('plan'); setHasStore(false); setStoreName(null); setPlan(null); setAmount(0); }} />
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ── SCREEN: Pre-shop Entry (Exploration: "set up before you shop") ──────
+
+    function PreShopEntryScreen({ onStart, onAlreadyAtCheckout }) {
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: c.bg }}>
+          <NavBar />
+
+          {/* Hero area — contextual "about to go shopping" scene */}
+          <div style={{
+            background: 'linear-gradient(150deg, #eae8ff 0%, #f3e8ff 60%, #ffeaea 100%)',
+            padding: '24px 20px 28px',
+            display: 'flex', flexDirection: 'column', gap: 14,
+          }}>
+            {/* Badge */}
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'rgba(255,255,255,0.65)',
+              borderRadius: 20, padding: '5px 12px',
+              border: '1px solid rgba(255,255,255,0.6)',
+              alignSelf: 'flex-start',
+            }}>
+              <span style={{ fontSize: 13 }}>⚡</span>
+              <span style={{
+                fontFamily: "'Calibre', sans-serif",
+                fontSize: 13, fontWeight: 600, color: c.text,
+              }}>Set up before you shop · 2 min</span>
+            </div>
+
+            <h1 style={{
+              fontFamily: "'Axiforma for Affirm', sans-serif",
+              fontWeight: 700, fontSize: 25,
+              color: c.text, margin: 0, lineHeight: 1.2,
+            }}>
+              Pay in installments,<br />hands free at checkout
+            </h1>
+
+            <p style={{
+              fontFamily: "'Calibre', sans-serif",
+              fontSize: 16, color: c.sub,
+              margin: 0, lineHeight: 1.5,
+            }}>
+              Set up your plan now, before you get in line. Then just swipe your Affirm Card.
+            </p>
+
+            {/* Stylised "about to go shopping" scene */}
+            <div style={{
+              background: 'rgba(255,255,255,0.5)',
+              borderRadius: 14, padding: '14px 16px',
+              display: 'flex', alignItems: 'center', gap: 14,
+              border: '1px solid rgba(255,255,255,0.7)',
+            }}>
+              <div style={{
+                fontSize: 34, lineHeight: 1, flexShrink: 0,
+                background: 'rgba(255,255,255,0.6)',
+                borderRadius: 10, padding: '6px 10px',
+              }}>🛍️</div>
+              <div>
+                <p style={{
+                  fontFamily: "'Calibre', sans-serif",
+                  fontWeight: 600, fontSize: 15, color: c.text, margin: '0 0 2px',
+                }}>Today's shopping trip</p>
+                <p style={{
+                  fontFamily: "'Calibre', sans-serif",
+                  fontSize: 14, color: c.sub, margin: 0,
+                }}>Take 2 minutes before you head to the register</p>
+              </div>
+            </div>
+          </div>
+
+          {/* How it works */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
+              {[
+                { icon: '💵', text: 'Enter roughly how much you plan to spend' },
+                { icon: '📅', text: 'Pick a payment schedule that works for you' },
+                { icon: '🪄', text: 'Swipe your Affirm Card at checkout — that\'s it' },
+              ].map(({ icon, text }, i) => (
+                <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 19,
+                    background: c.infoBg,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, fontSize: 18,
+                  }}>{icon}</div>
+                  <p style={{
+                    fontFamily: "'Calibre', sans-serif",
+                    fontSize: 16, color: c.text,
+                    margin: '7px 0 0', lineHeight: 1.4,
+                  }}>{text}</p>
+                </div>
+              ))}
+            </div>
+
+            <div style={{
+              background: c.greenBg, borderRadius: 12,
+              padding: '12px 14px',
+              display: 'flex', gap: 10, alignItems: 'flex-start',
+            }}>
+              <span style={{ fontSize: 18, lineHeight: '22px', flexShrink: 0 }}>💡</span>
+              <p style={{
+                fontFamily: "'Calibre', sans-serif",
+                fontSize: 14, color: c.text,
+                margin: 0, lineHeight: 1.5,
+              }}>
+                Don't know exactly what you'll spend? Enter an estimate — your payment amounts adjust to match your final purchase.
+              </p>
+            </div>
+          </div>
+
+          {/* CTA footer */}
+          <div style={{
+            padding: '12px 16px 4px', flexShrink: 0,
+            borderTop: `1px solid ${c.div}`, background: c.bg,
+          }}>
+            <PrimaryBtn onClick={onStart}>Set up payment plan</PrimaryBtn>
+            <button
+              onClick={onAlreadyAtCheckout}
+              style={{
+                width: '100%', background: 'none', border: 'none',
+                color: c.sub, fontSize: 15,
+                fontFamily: "'Calibre', sans-serif",
+                padding: '12px', cursor: 'pointer',
+              }}
+            >
+              I'm already at the register →
+            </button>
+          </div>
+
+          <HomeIndicator />
+        </div>
+      );
+    }
+
+    // ── Pre-shop App (exploration instance) ─────────────────────────
+
+    function PreShopApp() {
+      const initPsScreen = new URLSearchParams(window.location.search).get('ps');
+      const [screen, setScreen] = useState(initPsScreen || 'entry');
+      const [hasStore, setHasStore] = useState(false);
+      const [storeName, setStoreName] = useState(null);
+      const [plan, setPlan] = useState(null);
+      const [amount, setAmount] = useState(0);
+
+      const tabs = [
+        { id: 'entry', label: '① Entry Screen' },
+        { id: 'plan',  label: '② Plan Creation' },
+        { id: 'review', label: '③ Review' },
+      ];
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+          <div style={{ width: 390, display: 'flex', gap: 6 }}>
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setScreen(tab.id)}
+                style={{
+                  flex: 1,
+                  background: screen === tab.id || (screen === 'storeSelect' && tab.id === 'plan')
+                    ? 'rgba(255,255,255,0.15)'
+                    : 'rgba(255,255,255,0.05)',
+                  border: screen === tab.id || (screen === 'storeSelect' && tab.id === 'plan')
+                    ? '1px solid rgba(255,255,255,0.3)'
+                    : '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 8, padding: '8px 4px',
+                  fontSize: 12, fontWeight: 500,
+                  color: screen === tab.id || (screen === 'storeSelect' && tab.id === 'plan')
+                    ? 'white'
+                    : 'rgba(255,255,255,0.45)',
+                  fontFamily: "'DM Sans',sans-serif",
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >{tab.label}</button>
+            ))}
+          </div>
+
+          <div className="phone">
+            {screen === 'entry' && (
+              <PreShopEntryScreen
+                onStart={() => setScreen('plan')}
+                onAlreadyAtCheckout={() => setScreen('plan')}
+              />
+            )}
+            {screen === 'plan' && (
+              <PlanCreationScreen
+                hasStore={hasStore}
+                storeName={storeName}
+                onChoosePlan={(p, a) => { setPlan(p); setAmount(a); setScreen('review'); }}
+                onOpenStoreSelect={() => setScreen('storeSelect')}
+                onChangeStore={() => setScreen('storeSelect')}
+                headerText="Before you shop, set up a payment plan for"
+              />
+            )}
+            {screen === 'storeSelect' && (
+              <StoreSelectionScreen
+                onSelect={(name) => { setHasStore(true); setStoreName(name); setScreen('plan'); }}
+                onBack={() => setScreen('plan')}
+                onSkip={() => { setHasStore(false); setStoreName(null); setScreen('plan'); }}
+              />
+            )}
+            {screen === 'review' && (
+              <ReviewScreen
+                plan={plan}
+                amount={amount}
+                storeName={storeName}
+                onBack={() => setScreen('plan')}
+                onConfirm={() => setScreen('success')}
+              />
+            )}
+            {screen === 'success' && (
+              <SuccessScreen onReset={() => {
+                setScreen('entry'); setHasStore(false);
+                setStoreName(null); setPlan(null); setAmount(0);
+              }} />
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Cursor blink animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+      @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+      @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    `;
+    document.head.appendChild(style);
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    ReactDOM.createRoot(document.getElementById('root2')).render(<PreShopApp />);
+  </script>
+</body>
+</html>
