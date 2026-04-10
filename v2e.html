@@ -218,7 +218,7 @@
 
     // ── iOS bottom sheet nav bar (Affirm) ───────────────────────────
 
-    function NavBarApple({ onCancel }) {
+    function NavBarApple({ onCancel, hideLogo }) {
       return (
         <div style={{ position: 'relative', height: 129, flexShrink: 0 }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 119, background: 'rgba(20,22,27,0.9)' }} />
@@ -229,7 +229,7 @@
             background: '#f3f4f2',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <img src="./affirm-logo.svg" style={{ height: 40, width: 'auto' }} />
+            {!hideLogo && <img src="./affirm-logo.svg" style={{ height: 40, width: 'auto' }} />}
             <button
               onClick={onCancel}
               style={{
@@ -685,10 +685,17 @@
         }
       }, [phase]);
 
-      // Auto-advance: generic-loading-2 → wallet (3s)
+      // Auto-advance: generic-loading-2 → input (3s) — NTP users go straight to amount entry
       useEffect(() => {
         if (phase === 'generic-loading-2') {
-          const t = setTimeout(() => setPhase('wallet'), 3000);
+          const t = setTimeout(() => {
+            setRawAmt(''); setKbOpen(true); setSpread(false); setShimmer(false);
+            setSelectedPlan(null); setCardTopPx(CARD_TOP_INPUT); setCardMoveDur('0ms');
+            setGhostOpacity(1); setTermsVisible(false); setDeckEntered(false);
+            setAutopay(true); setDisclosureChecked(false); setIsConfirming(false);
+            setAmtError(false); setHeadingTransition(null);
+            setPhase('input');
+          }, 3000);
           timerRefs.current.push(t);
           return () => clearTimeout(t);
         }
@@ -889,7 +896,7 @@
             background: 'transparent',
             pointerEvents: sheetOpen ? 'auto' : 'none',
           }}>
-            <NavBarApple onCancel={isNtpMid ? () => { clearAllTimers(); setPhase('wallet-ntp'); } : handleCancel} />
+            <NavBarApple onCancel={isNtpMid ? () => { clearAllTimers(); setPhase('wallet-ntp'); } : handleCancel} hideLogo={phase === 'ntp-splash'} />
 
             <div style={{
               flex: 1,
