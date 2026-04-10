@@ -483,63 +483,55 @@
       const [cardErr, setCardErr] = React.useState(false);
 
       return (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 45, background: '#1c1c1e' }}>
-          {/* Status bar (dark) */}
-          <StatusBar dark={true} />
+        <div style={{ position: 'absolute', inset: 0, zIndex: 45, background: 'white', display: 'flex', flexDirection: 'column' }}>
+          <StatusBar dark={false} />
 
-          {/* White sheet */}
-          <div style={{
-            position: 'absolute', top: 100, left: 0, right: 0, bottom: 0,
-            background: 'white',
-            borderTopLeftRadius: 24, borderTopRightRadius: 24,
-          }}>
-            {/* Affirm card — overlaps dark/white boundary */}
-            <div style={{ position: 'absolute', top: -56, left: 52, right: 52 }}>
-              {!cardErr ? (
-                <img
-                  src="./affirm-card.png"
-                  style={{ width: '100%', borderRadius: 14, display: 'block', boxShadow: '0 12px 40px rgba(0,0,0,0.4)' }}
-                  onError={() => setCardErr(true)}
-                />
-              ) : (
-                <div style={{ width: '100%', paddingBottom: '63%', background: 'linear-gradient(135deg, #0d0d60 0%, #1818a0 50%, #080840 100%)', borderRadius: 14, boxShadow: '0 12px 40px rgba(0,0,0,0.4)' }} />
-              )}
-            </div>
+          {/* Affirm card */}
+          <div style={{ padding: '12px 20px 0' }}>
+            {!cardErr ? (
+              <img
+                src="./affirm-card.png"
+                style={{ width: '100%', borderRadius: 14, display: 'block', boxShadow: '0 12px 40px rgba(0,0,0,0.22)' }}
+                onError={() => setCardErr(true)}
+              />
+            ) : (
+              <div style={{ width: '100%', paddingBottom: '63%', background: 'linear-gradient(135deg, #0d0d60 0%, #1818a0 50%, #080840 100%)', borderRadius: 14, boxShadow: '0 12px 40px rgba(0,0,0,0.22)' }} />
+            )}
+          </div>
 
-            {/* Text */}
-            <div style={{ paddingTop: 172, paddingBottom: 24, textAlign: 'center' }}>
-              {isAdded ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 22, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif' }}>Card Added</span>
-                  <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                    <circle cx="11" cy="11" r="10" fill="#007AFF"/>
-                    <path d="M6 11l4 4 6-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ animation: 'spin 0.75s linear infinite', flexShrink: 0 }}>
-                    <circle cx="10" cy="10" r="8" stroke="#e2e2e6" strokeWidth="2.5"/>
-                    <path d="M10 2a8 8 0 0 1 8 8" stroke="#1c1c1e" strokeWidth="2.5" strokeLinecap="round"/>
-                  </svg>
-                  <span style={{ fontSize: 22, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif' }}>Adding Card…</span>
-                </div>
-              )}
-            </div>
+          {/* Status text */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {isAdded ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 22, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif' }}>Card Added</span>
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                  <circle cx="11" cy="11" r="10" fill="#007AFF"/>
+                  <path d="M6 11l4 4 6-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ animation: 'spin 0.75s linear infinite', flexShrink: 0 }}>
+                  <circle cx="10" cy="10" r="8" stroke="#e2e2e6" strokeWidth="2.5"/>
+                  <path d="M10 2a8 8 0 0 1 8 8" stroke="#1c1c1e" strokeWidth="2.5" strokeLinecap="round"/>
+                </svg>
+                <span style={{ fontSize: 22, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif' }}>Adding Card…</span>
+              </div>
+            )}
+          </div>
 
-            {/* Disabled Done button */}
-            <div style={{ position: 'absolute', bottom: 48, left: 20, right: 20 }}>
-              <button
-                disabled
-                style={{
-                  width: '100%', background: '#f2f2f7', color: '#8e8e93', border: 'none',
-                  borderRadius: 14, padding: '16px 24px', fontSize: 17, fontWeight: 600,
-                  fontFamily: 'system-ui, sans-serif', cursor: 'default',
-                }}
-              >
-                {isAdded ? 'Done' : 'Done'}
-              </button>
-            </div>
+          {/* Disabled Done button */}
+          <div style={{ padding: '0 20px 48px' }}>
+            <button
+              disabled
+              style={{
+                width: '100%', background: '#f2f2f7', color: '#8e8e93', border: 'none',
+                borderRadius: 14, padding: '16px 24px', fontSize: 17, fontWeight: 600,
+                fontFamily: 'system-ui, sans-serif', cursor: 'default',
+              }}
+            >
+              Done
+            </button>
           </div>
         </div>
       );
