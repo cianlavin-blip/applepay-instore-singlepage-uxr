@@ -485,9 +485,11 @@
       return (
         <div style={{ position: 'absolute', inset: 0, zIndex: 45, background: 'white', display: 'flex', flexDirection: 'column' }}>
           <StatusBar dark={false} />
+          {/* Spacer matching WalletScreen's 52px header so card lands in same position */}
+          <div style={{ height: 52, flexShrink: 0 }} />
 
-          {/* Affirm card */}
-          <div style={{ padding: '12px 20px 0' }}>
+          {/* Affirm card — matches wallet-complete card position (44 + 52 + 2 = 98px from top) */}
+          <div style={{ padding: '2px 20px 0' }}>
             {!cardErr ? (
               <img
                 src="./affirm-card.png"
