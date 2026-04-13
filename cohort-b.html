@@ -337,36 +337,39 @@
       const rows2 = [
         { icon: './icon-debit-credit.png',   label: 'Debit or Credit Card' },
         { icon: './icon-transit.png',        label: 'Transit Card' },
-        { icon: './icon-drivers-license.png',label: "Driver's License & ID Cards" },
-        { icon: './icon-apple-card.png',     label: 'Apply for Apple Card' },
-        { icon: './icon-apple-account.png',  label: 'Add Apple Account' },
+        { icon: './icon-drivers-license.png',label: "Driver's License and ID Cards" },
       ];
       const rows3 = [
+        { icon: './icon-apple-card.png',     label: 'Apply for Apple Card' },
+        { icon: './icon-apple-account.png',  label: 'Add Apple Account' },
         { icon: './icon-pay-later.png',      label: 'Pay Later Options', onTap: onPayLaterOptions },
       ];
+
+      const chevronRight = (
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="none" style={{ flexShrink: 0 }}>
+          <path d="M1 1l6 6-6 6" stroke="rgba(60,60,67,0.3)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      );
 
       const RowItem = ({ icon, label, onTap, isLast }) => (
         <div
           onClick={onTap}
           style={{
             display: 'flex', alignItems: 'center', gap: 12,
-            padding: '10px 16px',
-            background: 'white',
+            padding: '0 16px',
             cursor: onTap ? 'pointer' : 'default',
-            borderBottom: isLast ? 'none' : '1px solid rgba(0,0,0,0.08)',
-            minHeight: 56,
+            height: 52,
+            borderBottom: isLast ? 'none' : '1px solid rgba(60,60,67,0.1)',
           }}
         >
-          <img src={icon} style={{ width: 36, height: 36, borderRadius: 8, flexShrink: 0, objectFit: 'cover' }} />
-          <span style={{ flex: 1, fontSize: 17, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif' }}>{label}</span>
-          <svg width="8" height="14" viewBox="0 0 8 14" fill="none" style={{ flexShrink: 0 }}>
-            <path d="M1 1l6 6-6 6" stroke="#c7c7cc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          <img src={icon} style={{ width: 30, height: 30, borderRadius: 7, flexShrink: 0, objectFit: 'cover' }} />
+          <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif', letterSpacing: '-0.31px' }}>{label}</span>
+          {chevronRight}
         </div>
       );
 
-      const GroupedRows = ({ rows }) => (
-        <div style={{ background: 'white', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+      const GroupedCard = ({ rows }) => (
+        <div style={{ background: '#f2f2f7', borderRadius: 26, overflow: 'hidden', width: 342, margin: '0 auto 16px' }}>
           {rows.map((r, i) => (
             <RowItem key={r.label} icon={r.icon} label={r.label} onTap={r.onTap} isLast={i === rows.length - 1} />
           ))}
@@ -386,7 +389,7 @@
           {/* Sheet — starts ~100px from top leaving wallet peeking */}
           <div style={{
             position: 'absolute', top: 96, left: 0, right: 0, bottom: 0,
-            background: '#f2f2f7',
+            background: 'white',
             borderTopLeftRadius: 20, borderTopRightRadius: 20,
             overflow: 'hidden',
           }}>
@@ -398,22 +401,28 @@
               transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease',
               overflowY: 'auto',
             }}>
-              {/* Handle + header */}
+              {/* Handle */}
               <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 6px' }}>
                 <div style={{ width: 38, height: 4, background: '#c8c8cc', borderRadius: 2 }} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px 16px' }}>
-                <span style={{ fontSize: 20, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif' }}>Add to Wallet</span>
+              {/* Close button */}
+              <div style={{ padding: '8px 16px 0' }}>
                 <button onClick={onClose} style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 18, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
                     <path d="M1 1l9 9M10 1L1 10" stroke="#3c3c3e" strokeWidth="1.8" strokeLinecap="round"/>
                   </svg>
                 </button>
               </div>
-              <div style={{ padding: '0 16px 32px' }}>
-                <GroupedRows rows={rows1} />
-                <GroupedRows rows={rows2} />
-                <GroupedRows rows={rows3} />
+              {/* Title + subheader */}
+              <div style={{ padding: '16px 32px 24px' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif', letterSpacing: '-0.26px', lineHeight: '28px', marginBottom: 8 }}>Add to Wallet</div>
+                <div style={{ fontSize: 17, fontWeight: 400, color: 'rgba(60,60,67,0.6)', fontFamily: 'system-ui, sans-serif', letterSpacing: '-0.43px', lineHeight: '22px' }}>Keep all the cards, keys, and passes you use every day all in one place.</div>
+              </div>
+              {/* Rows */}
+              <div style={{ paddingBottom: 32 }}>
+                <GroupedCard rows={rows1} />
+                <GroupedCard rows={rows2} />
+                <GroupedCard rows={rows3} />
               </div>
             </div>
 
@@ -423,49 +432,44 @@
               transform: isPayLater ? 'translateX(0)' : 'translateX(100%)',
               transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
               overflowY: 'auto',
-              background: '#f2f2f7',
+              background: 'white',
             }}>
               {/* Handle */}
               <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 6px' }}>
                 <div style={{ width: 38, height: 4, background: '#c8c8cc', borderRadius: 2 }} />
               </div>
-              {/* Nav row */}
-              <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px 16px', gap: 4 }}>
+              {/* Back button */}
+              <div style={{ padding: '8px 16px 0' }}>
                 <button onClick={onPayLaterBack} style={{ background: 'none', border: 'none', padding: '4px 8px 4px 0', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
                   <svg width="9" height="16" viewBox="0 0 9 16" fill="none">
                     <path d="M7.5 1L1 8l6.5 7" stroke="#007AFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   <span style={{ color: '#007AFF', fontSize: 17, fontFamily: 'system-ui, sans-serif' }}>Back</span>
                 </button>
-                <span style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif', marginRight: 40 }}>Pay Later Options</span>
               </div>
-              {/* Affirm + Klarna rows */}
-              <div style={{ padding: '0 16px' }}>
-                <div style={{ background: 'white', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
-                  {/* Affirm row */}
-                  <div
-                    onClick={onSelectAffirm}
-                    style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.08)' }}
-                  >
-                    <img src="./icon-affirm.png" style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, objectFit: 'cover' }} />
+              {/* Title + subheader */}
+              <div style={{ padding: '16px 32px 24px' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif', letterSpacing: '-0.26px', lineHeight: '28px', marginBottom: 8 }}>Pay Later Options</div>
+                <div style={{ fontSize: 17, fontWeight: 400, color: 'rgba(60,60,67,0.6)', fontFamily: 'system-ui, sans-serif', letterSpacing: '-0.43px', lineHeight: '22px' }}>Pay over time using 4 interest-free payments or choose from other payment plans.</div>
+              </div>
+              {/* Affirm + Klarna card */}
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{ background: '#f2f2f7', borderRadius: 26, overflow: 'hidden', width: 342 }}>
+                  <div onClick={onSelectAffirm} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '0 16px', height: 68, cursor: 'pointer', borderBottom: '1px solid rgba(60,60,67,0.1)' }}>
+                    <img src="./icon-affirm.png" style={{ width: 44, height: 44, borderRadius: 11, flexShrink: 0, objectFit: 'cover' }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 17, fontWeight: 500, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif', marginBottom: 2 }}>Affirm</div>
-                      <div style={{ fontSize: 13, color: '#8e8e93', fontFamily: 'system-ui, sans-serif' }}>No fees, as low as 0% APR</div>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif', lineHeight: '21px', letterSpacing: '-0.31px' }}>Affirm</div>
+                      <div style={{ fontSize: 15, fontWeight: 400, color: 'rgba(60,60,67,0.6)', fontFamily: 'system-ui, sans-serif', lineHeight: '20px', letterSpacing: '-0.23px' }}>No fees, as low as 0% APR</div>
                     </div>
-                    <svg width="8" height="14" viewBox="0 0 8 14" fill="none" style={{ flexShrink: 0 }}>
-                      <path d="M1 1l6 6-6 6" stroke="#c7c7cc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    {chevronRight}
                   </div>
-                  {/* Klarna row */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', cursor: 'pointer' }}>
-                    <img src="./icon-klarna.png" style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, objectFit: 'cover' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '0 16px', height: 68, cursor: 'pointer' }}>
+                    <img src="./icon-klarna.png" style={{ width: 44, height: 44, borderRadius: 11, flexShrink: 0, objectFit: 'cover' }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 17, fontWeight: 500, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif', marginBottom: 2 }}>Klarna</div>
-                      <div style={{ fontSize: 13, color: '#8e8e93', fontFamily: 'system-ui, sans-serif' }}>Pay in 4 or monthly</div>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif', lineHeight: '21px', letterSpacing: '-0.31px' }}>Klarna</div>
+                      <div style={{ fontSize: 15, fontWeight: 400, color: 'rgba(60,60,67,0.6)', fontFamily: 'system-ui, sans-serif', lineHeight: '20px', letterSpacing: '-0.23px' }}>Pay in 4 or monthly</div>
                     </div>
-                    <svg width="8" height="14" viewBox="0 0 8 14" fill="none" style={{ flexShrink: 0 }}>
-                      <path d="M1 1l6 6-6 6" stroke="#c7c7cc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    {chevronRight}
                   </div>
                 </div>
               </div>
