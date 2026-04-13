@@ -66,6 +66,62 @@ Commit message format: `<type>(<scope>): <subject> [XYZ-000]` (Affirm convention
 
 ---
 
+## cohort-a.html — NTP + Account Creation phase state machine
+
+Based on v2e, with an extra account creation step inserted between phone entry and amount input.
+
+```
+wallet-ntp → add-to-wallet → pay-later-options → ntp-splash
+→ generic-loading-1 (3s) → phone-entry → generic-loading-2 (3s)
+→ account-creation → generic-loading-3 (3s)
+→ input → loading (5s) → terms → review
+→ [confirming 2.5s] → adding-card (4s)
+→ [isCardAddedExiting 0.45s] → card-added (0.5s) → wallet-complete
+```
+
+**Differences from v2e:**
+- `generic-loading-2` → `account-creation` (not `input`)
+- New `account-creation` phase: prefilled form (name, DOB, email), "Continue to plans" CTA → `generic-loading-3`
+- New `generic-loading-3` (3s) → resets amount/KB state → `input`
+- `ntpMidPhases` includes `account-creation` and `generic-loading-3`
+- `sheetOpen` allowlist includes `account-creation` and `generic-loading-3`
+- `overflowY: 'auto'` also applies to `account-creation`
+
+---
+
+## cohort-b.html — Existing user, no card — phase state machine
+
+NTP phone entry → card signup → add to Wallet → lands back at wallet → then full RTP checkout flow.
+
+```
+wallet-ntp → add-to-wallet → pay-later-options → ntp-splash
+→ generic-loading-1 (3s) → phone-entry → generic-loading-2 (3s)
+→ card-signup → [user taps Accept & Add]
+→ adding-card (4s) → [isCardAddedExiting 0.45s] → card-added (0.5s)
+→ wallet [Pay Later row animates in] → modal → input → loading (5s)
+→ terms → review → [confirming 2.5s] → wallet-complete
+```
+
+**Key differences from v2e:**
+- `generic-loading-2` → `card-signup` (not `input`)
+- `card-signup` phase: agreement screen with Affirm card mockup, checkbox + terms, "Accept & Add to Wallet" CTA → `adding-card`
+- After `card-added` exit: goes to `wallet` (not `wallet-complete`) — the user now starts the checkout flow
+- `payLaterVisible` state (`useState(false)`): set to `true` when `card-added` transitions to `wallet`, never unset. Controls Pay Later row visibility with slide-up animation. Stays `true` for entire rest of session so it doesn't re-animate on modal→wallet navigation.
+- `isComplete = phase === 'wallet-complete'` — controls Pay Later row *content* (Choose a Plan vs approved amount). Separate from `payLaterVisible`.
+- Confirm handler goes to `wallet-complete` (not `adding-card`) — card already added
+- `ntpMidPhases` includes `card-signup`
+- `sheetOpen` allowlist includes `card-signup`
+- `overflowY: 'auto'` also applies to `card-signup`
+- Assets used: `./card-signup-mockup.png` (232px, phone showing Affirm card in Wallet) and `./icon-bolt.svg`
+
+---
+
+## cohort-c.html — Existing user, has card
+
+Identical to v2d. No differences.
+
+---
+
 ## v2d.html — RTP phase state machine
 
 ```
@@ -147,7 +203,8 @@ The Affirm card must sit at exactly **98px from the top** across `adding-card`, 
 - All other sheet phases: `c.bg` (`#f2f2f4`)
 
 ### overflowY in sheet content
-- `terms`, `review`, `purchasing-power`: `'auto'` (scrollable)
+- `terms`, `review`, `purchasing-power`: `'auto'` (scrollable) — in v2d/v2e/cohort-c
+- Additionally `account-creation` (cohort-a) and `card-signup` (cohort-b) are also scrollable
 - Everything else: `'hidden'`
 
 ---
@@ -246,6 +303,8 @@ Defined in `<style>` block at the top:
 | `apple-card.png` | Apple Card image (for wallet screen) |
 | `pp-battery.svg` | Purchasing power battery illustration (top of PP screen) |
 | `pp-changes.svg` | Purchasing power graph illustration ("Why does it change?") |
+| `card-signup-mockup.png` | Phone mockup showing Affirm card in Wallet (cohort-b card signup screen) |
+| `icon-bolt.svg` | Lightning bolt icon (cohort-b card signup screen) |
 | `icon-*.png` | iOS Wallet app icons (Klarna, Apple Card, Pay Later, etc.) |
 
 ---
