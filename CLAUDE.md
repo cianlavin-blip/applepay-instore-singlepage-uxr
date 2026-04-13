@@ -14,17 +14,27 @@ A redesign exploration for Affirm's Apple Pay in-store checkout flow. The existi
 
 ## Prototype files
 
-All files are single HTML files using React + Babel (no build step). They deploy automatically to Netlify on every push to `main`.
+All files are single HTML files using React + Babel (no build step). They deploy automatically to GitHub Pages on every push to `main`.
 
-| File | Purpose | Netlify URL |
-|------|---------|-------------|
-| `v2d.html` | **RTP (Returning to Program)** — full flow for users who already have an Affirm account | `affirm-singlepage-uxr.netlify.app/v2d.html` |
-| `v2e.html` | **NTP (New to Program)** — full flow for first-time users, includes onboarding splash + phone entry | `affirm-singlepage-uxr.netlify.app/v2e.html` |
-| `v2c.html` | Earlier RTP prototype (superseded by v2d) | `affirm-singlepage-uxr.netlify.app/v2c.html` |
-| `v2b.html` | Amount entry variants A/B/C/D (earlier exploration) | `affirm-singlepage-uxr.netlify.app/v2b.html` |
-| `index.html` | Original exploration (earliest version) | `affirm-singlepage-uxr.netlify.app` |
+Base URL: `https://cianlavin-blip.github.io/applepay-instore-singlepage-uxr/`
 
-**For UXR Round 2, use v2d.html (RTP) and v2e.html (NTP) — these are the active prototypes.**
+### UXR Round 2 cohort prototypes (active)
+
+| File | Cohort | Purpose | URL |
+|------|--------|---------|-----|
+| `cohort-a.html` | **Cohort A** | NTP — new to Affirm. v2e flow + account creation screen after phone entry | `…/cohort-a.html` |
+| `cohort-b.html` | **Cohort B** | Existing user, no card. Phone entry → card signup → add to Wallet → RTP checkout flow | `…/cohort-b.html` |
+| `cohort-c.html` | **Cohort C** | Existing user, has card. v2d unchanged | `…/cohort-c.html` |
+
+### Base prototypes (reference)
+
+| File | Purpose | URL |
+|------|---------|-----|
+| `v2d.html` | **RTP** — full flow for users who already have an Affirm account | `…/v2d.html` |
+| `v2e.html` | **NTP** — full flow for first-time users, includes onboarding splash + phone entry | `…/v2e.html` |
+| `v2c.html` | Earlier RTP prototype (superseded by v2d) | `…/v2c.html` |
+| `v2b.html` | Amount entry variants A/B/C/D (earlier exploration) | `…/v2b.html` |
+| `index.html` | Original exploration (earliest version) | base URL |
 
 ---
 
@@ -44,10 +54,10 @@ No install needed. All dependencies (React, Babel, ReactDOM) load from CDN.
 
 ## How to deploy changes
 
-Just push to `main`. Netlify auto-deploys within ~30 seconds.
+Just push to `main`. GitHub Pages auto-deploys within ~1–2 minutes.
 
 ```bash
-git add v2d.html v2e.html
+git add cohort-a.html cohort-b.html cohort-c.html
 git commit -m "feat: your change description [XYZ-000]"
 git push
 ```
