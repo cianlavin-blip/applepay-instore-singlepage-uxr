@@ -977,7 +977,7 @@
 
       const handleCancel = () => {
         clearAllTimers();
-        setKbOpen(false); setIsConfirming(false); setAmtError(false); setHeadingTransition(null);
+        setRawAmt(''); setKbOpen(false); setIsConfirming(false); setAmtError(false); setHeadingTransition(null);
         setPhase(payLaterVisible ? 'wallet' : 'wallet-ntp');
       };
 

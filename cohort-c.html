@@ -614,6 +614,7 @@
 
       const handleCancel = () => {
         clearAllTimers();
+        setRawAmt('');
         setKbOpen(false);
         setIsConfirming(false);
         setAmtError(false);
