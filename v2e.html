@@ -594,8 +594,8 @@
               )}
             </div>
 
-            {/* Pay Later row */}
-            <div style={{ margin: '0 20px', animation: isComplete ? 'slideUpIn 0.5s cubic-bezier(0.4,0,0.2,1) 0.1s both' : 'none' }}>
+            {/* Pay Later row — hidden until wallet-complete, then animates in */}
+            <div style={{ margin: '0 20px', ...(isComplete ? { animation: 'slideUpIn 0.5s cubic-bezier(0.4,0,0.2,1) 0.1s both' } : { opacity: 0, pointerEvents: 'none' }) }}>
               <div
                 onClick={!isComplete ? onChoosePlan : undefined}
                 style={{
