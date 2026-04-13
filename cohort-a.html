@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apple Pay In-Store — UXR Round 2 NTP</title>
+  <style>
+    @font-face { font-family: 'Calibre'; src: url('https://www.affirm.com/fonts/src/calibre-regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+    @font-face { font-family: 'Calibre'; src: url('https://www.affirm.com/fonts/src/calibre-medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+    @font-face { font-family: 'Calibre'; src: url('https://www.affirm.com/fonts/src/calibre-semibold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
+    @font-face { font-family: 'Axiforma for Affirm'; src: url('https://www.affirm.com/fonts/src/AxiformaforAffirm.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+    @font-face { font-family: 'Axiforma for Affirm'; src: url('https://www.affirm.com/fonts/src/AxiformaforAffirm-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+    @font-face { font-family: 'Axiforma for Affirm'; src: url('https://www.affirm.com/fonts/src/AxiformaforAffirm-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+  </style>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Figma capture support -->
+  <script>
+    if (window.location.hash.includes('figmacapture=')) {
+      var s = document.createElement('script');
+      s.src = 'https://mcp.figma.com/mcp/html-to-design/capture.js';
+      s.async = true;
+      document.head.appendChild(s);
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      font-family: 'Calibre', system-ui, sans-serif;
+    }
+    .phone-wrap {
+      width: 390px;
+      height: 844px;
+      transform-origin: center top;
+    }
+    .phone {
+      width: 390px;
+      height: 844px;
+      background: #ebebed;
+      border-radius: 52px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 10px #2a2a2a, 0 0 0 11px #444;
+      position: relative;
+    }
+    ::-webkit-scrollbar { display: none; }
+    button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    button:active { opacity: 0.8; }
+    @keyframes blink    { 0%,100%{opacity:1} 50%{opacity:0} }
+    @keyframes shimmer  { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+    @keyframes fadeIn      { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes spin        { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    @keyframes slideUpOut  { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(-28px)} }
+    @keyframes fadeOut     { from{opacity:1} to{opacity:0} }
+    @keyframes slideUpIn   { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+    .shimmer-bg {
+      background: linear-gradient(90deg, #e2e2e6 25%, #ededf1 50%, #e2e2e6 75%);
+      background-size: 400px 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="phone-wrap" id="phone-wrap">
+    <div id="root"></div>
+  </div>
+
+  <script>
+    function scalePhone() {
+      var wrap = document.getElementById('phone-wrap');
+      var availW = window.innerWidth - 48;
+      var availH = window.innerHeight - 48;
+      var scaleW = availW / 390;
+      var scaleH = availH / 844;
+      var scale = Math.min(scaleW, scaleH, 1);
+      wrap.style.transform = 'scale(' + scale + ')';
+      wrap.style.marginBottom = ((844 * scale) - 844) + 'px';
+    }
+    scalePhone();
+    window.addEventListener('resize', scalePhone);
+  </script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // ── Design tokens ───────────────────────────────────────────────
+    const c = {
+      bg:      '#f2f2f4',
+      surface: '#ffffff',
+      nav:     '#f3f4f2',
+      text:    '#0c0c14',
+      sub:     '#4b4b5c',
+      accent:  '#000061',
+      link:    '#000061',
+      bdg:     '#e2e2ff',
+      bdgTxt:  '#4242cf',
+      div:     '#cbcbd4',
+    };
+
+    // ── Ghost card constants ────────────────────────────────────────
+    const CARD_H   = 70;
+    const CARD_GAP = 10;
+
+    const DECK_POS = [
+      { top: 0,   scale: 1,    opacity: 1    },
+      { top: 52,  scale: 0.95, opacity: 0.88 },
+      { top: 100, scale: 0.90, opacity: 0.85 },
+    ];
+    const SPREAD_POS = [
+      { top: 0,                        scale: 1, opacity: 1 },
+      { top: CARD_H + CARD_GAP,        scale: 1, opacity: 1 },
+      { top: (CARD_H + CARD_GAP) * 2,  scale: 1, opacity: 1 },
+    ];
+    const DECK_H   = DECK_POS[2].top + CARD_H;
+    const SPREAD_H = SPREAD_POS[2].top + CARD_H;
+
+    const CARD_DEFS = [
+      { w1: '60%', w2: '40%' },
+      { w1: '54%', w2: '36%' },
+      { w1: '66%', w2: '44%' },
+    ];
+
+    const CARD_TOP_INPUT   = 349;
+    const CARD_TOP_LOADING = 226;
+
+    // ── Shared primitives ───────────────────────────────────────────
+
+    function HomeIndicator() {
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, paddingBottom: 18, background: c.bg, flexShrink: 0 }}>
+          <div style={{ width: 134, height: 5, background: c.text, borderRadius: 3, opacity: 0.2 }} />
+        </div>
+      );
+    }
+
+    // ── Animated ghost card stack ───────────────────────────────────
+
+    function AnimatedGhostStack({ spread, shimmer, entered }) {
+      const positions  = spread ? SPREAD_POS : DECK_POS;
+      const containerH = spread ? SPREAD_H   : DECK_H;
+
+      return (
+        <div style={{ position: 'relative', height: containerH, transition: 'height 0.52s cubic-bezier(0.4,0,0.2,1)' }}>
+          {CARD_DEFS.map(({ w1, w2 }, i) => {
+            const pos         = positions[i];
+            const spreadDelay = `${i * 60}ms`;
+            const enterDelay  = `${i * 90}ms`;
+            const isHidden    = !entered && !spread;
+            const translateY  = isHidden ? '28px' : '0px';
+            const cardOpacity = isHidden ? 0 : pos.opacity;
+            return (
+              <div key={i} style={{
+                position: 'absolute', left: 0, right: 0, height: CARD_H,
+                top: pos.top,
+                transform: `scale(${pos.scale}) translateY(${translateY})`,
+                transformOrigin: 'center top',
+                opacity: cardOpacity,
+                zIndex: spread ? 1 : (3 - i),
+                background: c.surface, borderRadius: 16, padding: '12px 14px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
+                transition: [
+                  `top 0.52s cubic-bezier(0.4,0,0.2,1) ${spread ? spreadDelay : '0ms'}`,
+                  `transform 0.52s cubic-bezier(0.4,0,0.2,1) ${spread ? spreadDelay : enterDelay}`,
+                  `opacity 0.45s ease ${spread ? '0ms' : enterDelay}`,
+                ].join(', '),
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
+                  <div className={shimmer ? 'shimmer-bg' : ''} style={{ width: 17, height: 17, borderRadius: 9, background: shimmer ? undefined : '#c4c4cc', flexShrink: 0, marginTop: 2 }} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div className={shimmer ? 'shimmer-bg' : ''} style={{ height: 12, borderRadius: 4, width: w1, background: shimmer ? undefined : '#c8c8d0' }} />
+                    <div className={shimmer ? 'shimmer-bg' : ''} style={{ height: 10, borderRadius: 4, width: w2, background: shimmer ? undefined : '#d4d4dc' }} />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // ── Plan card ───────────────────────────────────────────────────
+
+    function PlanCard({ plan, selected, onSelect }) {
+      return (
+        <div onClick={onSelect} style={{
+          background: c.surface, borderRadius: 16,
+          border: selected ? `2px solid ${c.accent}` : '2px solid transparent',
+          padding: '12px 16px', cursor: 'pointer',
+          transition: 'border-color 0.15s',
+        }}>
+          {plan.badge && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', background: plan.badgeBg || c.bdg, borderRadius: 8, padding: '3px 10px', marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 500, color: plan.badgeColor || c.bdgTxt, fontFamily: "'Calibre',sans-serif" }}>{plan.badge}</span>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <div style={{ width: 20, height: 20, borderRadius: 10, flexShrink: 0, marginTop: 4, border: selected ? `6px solid ${c.accent}` : `2px solid ${c.div}`, background: c.surface, transition: 'border 0.15s' }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontFamily: "'Calibre',sans-serif", color: c.text, margin: '0 0 3px' }}>
+                <span style={{ fontSize: 20, fontWeight: 600 }}>{plan.payment}</span>
+                <span style={{ fontSize: 15, color: c.sub }}>{' '}{plan.frequency}</span>
+              </p>
+              <div style={{ display: 'flex', gap: 8, fontSize: 15, color: c.sub, fontFamily: "'Calibre',sans-serif" }}>
+                <span>{plan.interest}</span><span>·</span><span>{plan.due}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── iOS bottom sheet nav bar (Affirm) ───────────────────────────
+
+    function NavBarApple({ onCancel, hideLogo }) {
+      return (
+        <div style={{ position: 'relative', height: 129, flexShrink: 0 }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 119, background: 'rgba(20,22,27,0.9)' }} />
+          <div style={{ position: 'absolute', top: 54, left: 16, right: 16, height: 75, borderRadius: 36, background: '#c8c8cc' }} />
+          <div style={{
+            position: 'absolute', top: 62, left: 0, right: 0, height: 67,
+            borderTopLeftRadius: 36, borderTopRightRadius: 36,
+            background: '#f3f4f2',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {!hideLogo && <img src="./affirm-logo.svg" style={{ height: 40, width: 'auto' }} />}
+            <button
+              onClick={onCancel}
+              style={{
+                position: 'absolute', left: 20,
+                width: 36, height: 36, borderRadius: 18,
+                background: 'white', border: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 1px 6px rgba(0,0,0,0.14)',
+                cursor: 'pointer',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M1 1l10 10M11 1L1 11" stroke="#1c1c1e" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Status bar (reusable, dark or light) ───────────────────────
+
+    function StatusBar({ dark }) {
+      const col = dark ? 'white' : '#1c1c1e';
+      const op  = dark ? 0.3 : 0.35;
+      return (
+        <div style={{ height: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', flexShrink: 0 }}>
+          <span style={{ color: col, fontSize: 15, fontWeight: 600, fontFamily: 'system-ui, sans-serif' }}>9:41</span>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <svg width="18" height="12" viewBox="0 0 18 12" fill={col}>
+              <rect x="0" y="7" width="3" height="5" rx="0.5"/>
+              <rect x="5" y="4.5" width="3" height="7.5" rx="0.5"/>
+              <rect x="10" y="2" width="3" height="10" rx="0.5"/>
+              <rect x="15" y="0" width="3" height="12" rx="0.5" fillOpacity="0.3"/>
+            </svg>
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+              <circle cx="8" cy="11" r="1.5" fill={col}/>
+              <path d="M4 7.5C5.3 6.1 6.6 5.5 8 5.5s2.7.6 4 2" stroke={col} strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M1 4.5C3.2 2.2 5.5 1 8 1s4.8 1.2 7 3.5" stroke={col} strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+              <rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke={col} strokeOpacity={op}/>
+              <rect x="2" y="2" width="17" height="8" rx="2" fill={col}/>
+              <path d="M23 4v4a2 2 0 000-4z" fill={col} fillOpacity="0.4"/>
+            </svg>
+          </div>
+        </div>
+      );
+    }
+
+    // ── NTP Wallet Screen (no Affirm card yet) ──────────────────────
+
+    function NtpWalletScreen({ onAddCard }) {
+      const [cardErr, setCardErr] = React.useState(false);
+      return (
+        <div style={{ position: 'absolute', inset: 0, background: '#ebebed', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <StatusBar dark={false} />
+            {/* Wallet header: large title + + button */}
+            <div style={{ height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}>
+              <span style={{ fontSize: 34, fontWeight: 700, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif', letterSpacing: -0.5 }}>Wallet</span>
+              <button
+                onClick={onAddCard}
+                style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(0,0,0,0.08)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                  <path d="M7.5 1v13M1 7.5h13" stroke="#1c1c1e" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+            {/* Apple Mastercard */}
+            <div style={{ padding: '2px 20px 16px' }}>
+              {!cardErr ? (
+                <img
+                  src="./apple-card.png"
+                  style={{ width: '100%', borderRadius: 14, display: 'block', boxShadow: '0 8px 28px rgba(0,0,0,0.22)' }}
+                  onError={() => setCardErr(true)}
+                />
+              ) : (
+                <div style={{ width: '100%', height: 212, background: 'linear-gradient(135deg, #1a1a1a 0%, #3a3a3a 100%)', borderRadius: 14, boxShadow: '0 8px 28px rgba(0,0,0,0.22)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px 22px' }}>
+                  <span style={{ fontSize: 20, fontWeight: 600, color: 'white', fontFamily: 'system-ui' }}>Apple Card</span>
+                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, fontFamily: 'system-ui', margin: 0, letterSpacing: 3 }}>•••• •••• •••• 1234</p>
+                </div>
+              )}
+            </div>
+            {/* Home indicator */}
+            <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'center', padding: '10px 0 20px' }}>
+              <div style={{ width: 134, height: 5, background: '#1c1c1e', borderRadius: 3, opacity: 0.2 }} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Add To Wallet + Pay Later Options Flow ──────────────────────
+
+    function AddToWalletFlow({ phase, onClose, onPayLaterOptions, onPayLaterBack, onSelectAffirm }) {
+      const isOpen     = ['add-to-wallet', 'pay-later-options'].includes(phase);
+      const isPayLater = phase === 'pay-later-options';
+
+      const rows1 = [
+        { icon: './icon-cards-found.png',    label: 'Cards Found For You' },
+      ];
+      const rows2 = [
+        { icon: './icon-debit-credit.png',   label: 'Debit or Credit Card' },
+        { icon: './icon-transit.png',        label: 'Transit Card' },
+        { icon: './icon-drivers-license.png',label: "Driver's License & ID Cards" },
+        { icon: './icon-apple-card.png',     label: 'Apply for Apple Card' },
+        { icon: './icon-apple-account.png',  label: 'Add Apple Account' },
+      ];
+      const rows3 = [
+        { icon: './icon-pay-later.png',      label: 'Pay Later Options', onTap: onPayLaterOptions },
+      ];
+
+      const RowItem = ({ icon, label, onTap, isLast }) => (
+        <div
+          onClick={onTap}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '10px 16px',
+            background: 'white',
+            cursor: onTap ? 'pointer' : 'default',
+            borderBottom: isLast ? 'none' : '1px solid rgba(0,0,0,0.08)',
+            minHeight: 56,
+          }}
+        >
+          <img src={icon} style={{ width: 36, height: 36, borderRadius: 8, flexShrink: 0, objectFit: 'cover' }} />
+          <span style={{ flex: 1, fontSize: 17, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif' }}>{label}</span>
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M1 1l6 6-6 6" stroke="#c7c7cc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      );
+
+      const GroupedRows = ({ rows }) => (
+        <div style={{ background: 'white', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+          {rows.map((r, i) => (
+            <RowItem key={r.label} icon={r.icon} label={r.label} onTap={r.onTap} isLast={i === rows.length - 1} />
+          ))}
+        </div>
+      );
+
+      return (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 10,
+          transform: isOpen ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.42s cubic-bezier(0.4,0,0.2,1)',
+          overflow: 'hidden',
+        }}>
+          {/* Dim overlay behind sheet */}
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
+
+          {/* Sheet — starts ~100px from top leaving wallet peeking */}
+          <div style={{
+            position: 'absolute', top: 96, left: 0, right: 0, bottom: 0,
+            background: '#f2f2f7',
+            borderTopLeftRadius: 20, borderTopRightRadius: 20,
+            overflow: 'hidden',
+          }}>
+            {/* Page 1: Add to Wallet list */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              transform: isPayLater ? 'translateX(-25%)' : 'translateX(0)',
+              opacity: isPayLater ? 0 : 1,
+              transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease',
+              overflowY: 'auto',
+            }}>
+              {/* Handle + header */}
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 6px' }}>
+                <div style={{ width: 38, height: 4, background: '#c8c8cc', borderRadius: 2 }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px 16px' }}>
+                <span style={{ fontSize: 20, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif' }}>Add to Wallet</span>
+                <button onClick={onClose} style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 18, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                    <path d="M1 1l9 9M10 1L1 10" stroke="#3c3c3e" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              </div>
+              <div style={{ padding: '0 16px 32px' }}>
+                <GroupedRows rows={rows1} />
+                <GroupedRows rows={rows2} />
+                <GroupedRows rows={rows3} />
+              </div>
+            </div>
+
+            {/* Page 2: Pay Later Options */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              transform: isPayLater ? 'translateX(0)' : 'translateX(100%)',
+              transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+              overflowY: 'auto',
+              background: '#f2f2f7',
+            }}>
+              {/* Handle */}
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 6px' }}>
+                <div style={{ width: 38, height: 4, background: '#c8c8cc', borderRadius: 2 }} />
+              </div>
+              {/* Nav row */}
+              <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px 16px', gap: 4 }}>
+                <button onClick={onPayLaterBack} style={{ background: 'none', border: 'none', padding: '4px 8px 4px 0', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                  <svg width="9" height="16" viewBox="0 0 9 16" fill="none">
+                    <path d="M7.5 1L1 8l6.5 7" stroke="#007AFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span style={{ color: '#007AFF', fontSize: 17, fontFamily: 'system-ui, sans-serif' }}>Back</span>
+                </button>
+                <span style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif', marginRight: 40 }}>Pay Later Options</span>
+              </div>
+              {/* Affirm + Klarna rows */}
+              <div style={{ padding: '0 16px' }}>
+                <div style={{ background: 'white', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+                  {/* Affirm row */}
+                  <div
+                    onClick={onSelectAffirm}
+                    style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.08)' }}
+                  >
+                    <img src="./icon-affirm.png" style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, objectFit: 'cover' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 17, fontWeight: 500, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif', marginBottom: 2 }}>Affirm</div>
+                      <div style={{ fontSize: 13, color: '#8e8e93', fontFamily: 'system-ui, sans-serif' }}>No fees, as low as 0% APR</div>
+                    </div>
+                    <svg width="8" height="14" viewBox="0 0 8 14" fill="none" style={{ flexShrink: 0 }}>
+                      <path d="M1 1l6 6-6 6" stroke="#c7c7cc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  {/* Klarna row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', cursor: 'pointer' }}>
+                    <img src="./icon-klarna.png" style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, objectFit: 'cover' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 17, fontWeight: 500, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif', marginBottom: 2 }}>Klarna</div>
+                      <div style={{ fontSize: 13, color: '#8e8e93', fontFamily: 'system-ui, sans-serif' }}>Pay in 4 or monthly</div>
+                    </div>
+                    <svg width="8" height="14" viewBox="0 0 8 14" fill="none" style={{ flexShrink: 0 }}>
+                      <path d="M1 1l6 6-6 6" stroke="#c7c7cc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // NtpFullScreenOverlay removed — splash/loading/phone now live inside the Affirm bottom sheet
+
+    // ── Adding Card Screen ──────────────────────────────────────────
+
+    function AddingCardScreen({ phase, isExiting }) {
+      const isAdded = phase === 'card-added';
+      const [cardErr, setCardErr] = React.useState(false);
+
+      return (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 45, background: 'white', display: 'flex', flexDirection: 'column',
+          animation: isExiting ? 'fadeOut 0.45s cubic-bezier(0.4,0,0.2,1) forwards' : 'none',
+        }}>
+          <StatusBar dark={false} />
+          {/* Spacer matching WalletScreen's 52px header so card lands in same position */}
+          <div style={{ height: 52, flexShrink: 0 }} />
+
+          {/* Affirm card — matches wallet-complete card position (44 + 52 + 2 = 98px from top) */}
+          <div style={{ padding: '2px 20px 0' }}>
+            {!cardErr ? (
+              <img
+                src="./affirm-card.png"
+                style={{ width: '100%', borderRadius: 14, display: 'block', boxShadow: '0 12px 40px rgba(0,0,0,0.22)' }}
+                onError={() => setCardErr(true)}
+              />
+            ) : (
+              <div style={{ width: '100%', paddingBottom: '63%', background: 'linear-gradient(135deg, #0d0d60 0%, #1818a0 50%, #080840 100%)', borderRadius: 14, boxShadow: '0 12px 40px rgba(0,0,0,0.22)' }} />
+            )}
+          </div>
+
+          {/* Status text */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: isExiting ? 'slideUpOut 0.4s cubic-bezier(0.4,0,0.2,1) forwards' : 'none' }}>
+            {isAdded ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 22, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif' }}>Card Added</span>
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                  <circle cx="11" cy="11" r="10" fill="#007AFF"/>
+                  <path d="M6 11l4 4 6-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ animation: 'spin 0.75s linear infinite', flexShrink: 0 }}>
+                  <circle cx="10" cy="10" r="8" stroke="#e2e2e6" strokeWidth="2.5"/>
+                  <path d="M10 2a8 8 0 0 1 8 8" stroke="#1c1c1e" strokeWidth="2.5" strokeLinecap="round"/>
+                </svg>
+                <span style={{ fontSize: 22, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif' }}>Adding Card…</span>
+              </div>
+            )}
+          </div>
+
+          {/* Disabled Done button */}
+          <div style={{ padding: '0 20px 48px' }}>
+            <button
+              disabled
+              style={{
+                width: '100%', background: '#f2f2f7', color: '#8e8e93', border: 'none',
+                borderRadius: 14, padding: '16px 24px', fontSize: 17, fontWeight: 600,
+                fontFamily: 'system-ui, sans-serif', cursor: 'default',
+              }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Apple Wallet screen (with Affirm card — RTP flow) ───────────
+
+    function WalletScreen({ phase, rawAmt, onChoosePlan }) {
+      const [cardErr, setCardErr] = useState(false);
+      const isComplete  = phase === 'wallet-complete';
+      const displayAmt  = parseFloat(rawAmt || '0');
+
+      return (
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', background: '#ebebed' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <StatusBar dark={false} />
+
+            {/* iOS Wallet header */}
+            <div style={{ height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}>
+              <button style={{ width: 36, height: 36, borderRadius: 18, background: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.14)', flexShrink: 0 }}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M1 1l10 10M11 1L1 11" stroke="#1c1c1e" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'white', borderRadius: 20, padding: '7px 14px', boxShadow: '0 1px 6px rgba(0,0,0,0.14)' }}>
+                <svg width="18" height="13" viewBox="0 0 18 13" fill="none">
+                  <rect x="0.5" y="0.5" width="17" height="12" rx="2.5" stroke="#1c1c1e" strokeOpacity="0.6"/>
+                  <rect x="0" y="3.5" width="18" height="2.5" fill="#1c1c1e" fillOpacity="0.5"/>
+                  <rect x="2" y="8" width="4" height="2" rx="0.5" fill="#1c1c1e" fillOpacity="0.5"/>
+                </svg>
+                <span style={{ fontSize: 18, color: '#1c1c1e', letterSpacing: 2, lineHeight: 1 }}>•••</span>
+              </div>
+            </div>
+
+            {/* Affirm card */}
+            <div style={{ padding: '2px 20px 12px' }}>
+              {!cardErr ? (
+                <img
+                  src="./affirm-card.png"
+                  style={{ width: '100%', borderRadius: 14, display: 'block', boxShadow: '0 8px 28px rgba(0,0,0,0.22)' }}
+                  onError={() => setCardErr(true)}
+                />
+              ) : (
+                <div style={{ width: '100%', height: 212, background: 'linear-gradient(135deg, #0d0d60 0%, #1818a0 50%, #080840 100%)', borderRadius: 14, boxShadow: '0 8px 28px rgba(0,0,0,0.22)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px 22px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 26, fontWeight: 800, color: 'white', fontFamily: "'Axiforma for Affirm', sans-serif" }}>affirm</span>
+                    <div style={{ width: 36, height: 24, borderRadius: 4, background: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.3)' }} />
+                  </div>
+                  <div>
+                    <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, fontFamily: 'system-ui', margin: '0 0 6px', letterSpacing: 1.5, textTransform: 'uppercase' }}>Debit/Flex Visa</p>
+                    <p style={{ color: 'white', fontSize: 16, fontFamily: 'system-ui', letterSpacing: 3, margin: 0 }}>•••• •••• •••• 8046</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pay Later row — hidden until wallet-complete, then animates in */}
+            <div style={{ margin: '0 20px', ...(isComplete ? { animation: 'slideUpIn 0.5s cubic-bezier(0.4,0,0.2,1) 0.1s both' } : { opacity: 0, pointerEvents: 'none' }) }}>
+              <div
+                onClick={!isComplete ? onChoosePlan : undefined}
+                style={{
+                  background: 'white', borderRadius: 16, padding: '12px 16px',
+                  cursor: isComplete ? 'default' : 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  boxShadow: '0 1px 6px rgba(0,0,0,0.1)',
+                }}
+              >
+                <div style={{ width: 44, height: 44, borderRadius: 22, background: '#CB30E0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="9" stroke="white" strokeWidth="1.8"/>
+                    <path d="M12 7.5v4.5l3 2" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <p style={{ fontSize: 13, color: '#8e8e93', fontFamily: 'system-ui, sans-serif', margin: '0 0 2px', fontWeight: 400 }}>Pay Later</p>
+                  <p style={{ fontSize: 16, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif', margin: 0 }}>
+                    {isComplete && displayAmt > 0
+                      ? `Purchases up to $${displayAmt.toFixed(2)}`
+                      : 'Choose a Plan'}
+                    {' '}
+                    <span style={{ color: '#8e8e93', fontSize: 14, fontWeight: 400 }}>◇</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'center', padding: '10px 0 20px' }}>
+              <div style={{ width: 134, height: 5, background: '#1c1c1e', borderRadius: 3, opacity: 0.2 }} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Account Creation screen (Cohort A — NTP) ───────────────────
+
+    function AccountCreationScreen({ onContinue }) {
+      const fields = [
+        { label: 'First name on ID', value: 'Alex' },
+        { label: 'Last name on ID', value: 'Johnson' },
+        { label: 'Birth date (mm/dd/yyyy)', value: '01/15/1990' },
+        { label: 'Email', value: 'alex.johnson@email.com' },
+      ];
+      return (
+        <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Header */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <h1 style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 24, color: c.text, lineHeight: '28px', margin: 0 }}>
+              Welcome to Affirm
+            </h1>
+            <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 18, color: c.sub, lineHeight: '26px', margin: 0 }}>
+              Use your legal name so we can verify your identity and show you custom payment plans.
+            </p>
+          </div>
+
+          {/* Form fields */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* First name */}
+            <div style={{ background: 'white', borderRadius: 12, padding: '14px 16px', height: 56, display: 'flex', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 12, color: c.sub, lineHeight: '16px' }}>First name on ID</span>
+                <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.text, lineHeight: '20px' }}>Alex</span>
+              </div>
+            </div>
+            {/* Last name + Suffix */}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ background: 'white', borderRadius: 12, padding: '14px 16px', height: 56, flex: 1, display: 'flex', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                  <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 12, color: c.sub, lineHeight: '16px' }}>Last name on ID</span>
+                  <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.text, lineHeight: '20px' }}>Johnson</span>
+                </div>
+              </div>
+              <div style={{ background: 'white', borderRadius: 12, padding: '14px 16px', height: 56, width: 120, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.sub }}>Suffix</span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 5.5l5 5 5-5" stroke={c.sub} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            </div>
+            {/* Birth date */}
+            <div style={{ background: 'white', borderRadius: 12, padding: '14px 16px', height: 56, display: 'flex', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 12, color: c.sub, lineHeight: '16px' }}>Birth date (mm/dd/yyyy)</span>
+                <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.text, lineHeight: '20px' }}>01/15/1990</span>
+              </div>
+            </div>
+            {/* Email */}
+            <div style={{ background: 'white', borderRadius: 12, padding: '14px 16px', height: 56, display: 'flex', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 12, color: c.sub, lineHeight: '16px' }}>Email</span>
+                <span style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.text, lineHeight: '20px' }}>alex.johnson@email.com</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Legal */}
+          <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.text, lineHeight: '24px', margin: 0 }}>
+            By creating an account, I agree to Affirm&apos;s{' '}
+            <span style={{ color: c.link, textDecoration: 'underline', fontWeight: 500 }}>E-Sign Disclosure</span>,{' '}
+            <span style={{ color: c.link, textDecoration: 'underline', fontWeight: 500 }}>Account Disclosure</span>, and to receive account updates via SMS.
+          </p>
+
+          {/* CTA */}
+          <button
+            onClick={onContinue}
+            style={{
+              width: '100%', background: '#000049', color: '#f7f7f8', border: 'none',
+              borderRadius: 16, padding: '11px 24px', fontSize: 18, fontWeight: 500,
+              fontFamily: "'Calibre', sans-serif", cursor: 'pointer',
+            }}
+          >
+            Continue to plans
+          </button>
+
+          {/* Sign in link */}
+          <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: 8 }}>
+            <button style={{ background: 'none', border: 'none', fontFamily: "'Calibre', sans-serif", fontSize: 18, fontWeight: 500, color: c.link, cursor: 'pointer' }}>
+              Already have an account?
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Purchasing Power Education screen ──────────────────────────
+
+    function PurchasingPowerScreen({ onClose }) {
+      return (
+        <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: 'column' }}>
+          {/* Page-level × close — sits below NavBarApple's × */}
+          <button
+            onClick={onClose}
+            style={{
+              alignSelf: 'flex-start', background: 'rgba(120,120,128,0.14)', border: 'none',
+              borderRadius: 999, width: 30, height: 30, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer', marginBottom: 20, padding: 0,
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M1 1l10 10M11 1L1 11" stroke={c.text} strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+          </button>
+
+          {/* Battery illustration */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+            <img src="./pp-battery.svg" style={{ width: 144, height: 'auto' }} />
+          </div>
+
+          {/* Heading */}
+          <h2 style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 28, color: c.text, lineHeight: '34px', margin: '0 0 12px' }}>
+            What's purchasing power?
+          </h2>
+
+          {/* Intro */}
+          <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 18, color: c.sub, lineHeight: '27px', margin: '0 0 12px' }}>
+            It's a snapshot of the estimated amount you could spend with Affirm right now.
+          </p>
+          <p style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 18, color: c.text, lineHeight: '27px', margin: '0 0 8px' }}>
+            It's different from a credit limit because:
+          </p>
+          {[
+            'It updates regularly based on your activity',
+            'It can vary by merchant and purchase category',
+          ].map((item, i) => (
+            <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ marginTop: 5, flexShrink: 0 }}>
+                <path d="M4 8.5l2.5 2.5L12 5" stroke={c.accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 17, color: c.text, lineHeight: '26px', margin: 0 }}>{item}</p>
+            </div>
+          ))}
+
+          {/* Accordion card */}
+          <div style={{ background: 'white', borderRadius: 16, overflow: 'hidden', margin: '20px 0 16px' }}>
+            {/* Section 1 */}
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 17, color: c.text, lineHeight: '25px' }}>
+                  What goes into my number?
+                </span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+                  <path d="M3 10.5l5-5 5 5" stroke={c.sub} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              {[
+                'Your payment history with Affirm',
+                'How much credit you\u2019re currently using',
+                'The merchant you\u2019re shopping with',
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ marginTop: 4, flexShrink: 0 }}>
+                    <path d="M5 8h6M8 5l3 3-3 3" stroke={c.sub} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.sub, lineHeight: '24px', margin: 0 }}>{item}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: 1, background: c.div, margin: '0 16px' }} />
+
+            {/* Section 2 */}
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 17, color: c.text, lineHeight: '25px' }}>
+                  Why does it change?
+                </span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+                  <path d="M3 10.5l5-5 5 5" stroke={c.sub} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              {/* Graph card */}
+              <div style={{ background: c.bg, borderRadius: 12, padding: '12px 14px', marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: c.bdg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M7 1L3 8h4l-1 5 5-7H7l1-5z" fill={c.bdgTxt}/>
+                    </svg>
+                  </div>
+                  <span style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 14, color: c.text }}>Purchasing power</span>
+                </div>
+                <img src="./pp-changes.svg" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 12, color: c.sub, margin: '6px 0 0', textAlign: 'center' }}>
+                  for illustrative purposes only
+                </p>
+              </div>
+              <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.sub, lineHeight: '24px', margin: '0 0 8px' }}>
+                Your purchasing power changes based on:
+              </p>
+              {[
+                'Making on-time payments can increase it',
+                'Missing payments or taking on more credit can lower it',
+                'It may vary by merchant and purchase category',
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ marginTop: 4, flexShrink: 0 }}>
+                    <path d="M5 8h6M8 5l3 3-3 3" stroke={c.sub} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.sub, lineHeight: '24px', margin: 0 }}>{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Legal */}
+          <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 14, color: c.sub, lineHeight: '21px', margin: '0 0 20px' }}>
+            Purchasing power is an estimate and is not a guarantee of credit approval. Actual loan amounts are subject to eligibility, credit approval, and the{' '}
+            <span style={{ color: c.link, textDecoration: 'underline' }}>terms and conditions</span>{' '}
+            of your loan agreement. Loans are made by{' '}
+            <span style={{ color: c.link, textDecoration: 'underline' }}>Affirm\u2019s lending partners</span>.
+          </p>
+
+          {/* Got it CTA */}
+          <button
+            onClick={onClose}
+            style={{
+              width: '100%', background: '#000049', color: 'white', border: 'none',
+              borderRadius: 999, height: 48, fontSize: 18, fontWeight: 500,
+              fontFamily: "'Calibre', sans-serif", cursor: 'pointer', marginBottom: 8,
+            }}
+          >
+            Got it
+          </button>
+        </div>
+      );
+    }
+
+    // ── Main App ────────────────────────────────────────────────────
+    // Phase state machine:
+    //   wallet-ntp → add-to-wallet → pay-later-options → ntp-splash
+    //   → generic-loading-1 (3s) → phone-entry → generic-loading-2 (3s)
+    //   → wallet → modal → input → loading (5s) → terms → review
+    //   → [confirming 2.5s] → adding-card (4s) → card-added (1s) → wallet-complete
+
+    function App() {
+      const timerRefs = React.useRef([]);
+      const clearAllTimers = () => { timerRefs.current.forEach(clearTimeout); timerRefs.current = []; };
+
+      const [phase, setPhase]               = useState('wallet-ntp');
+      const [rawAmt, setRawAmt]             = useState('');
+      const [amtError, setAmtError]         = useState(false);
+      const [kbOpen, setKbOpen]             = useState(false);
+      const [spread, setSpread]             = useState(false);
+      const [shimmer, setShimmer]           = useState(false);
+      const [selectedPlan, setSelectedPlan] = useState(null);
+      const [cardTopPx, setCardTopPx]       = useState(CARD_TOP_INPUT);
+      const [cardMoveDur, setCardMoveDur]   = useState('0ms');
+      const [ghostOpacity, setGhostOpacity] = useState(1);
+      const [termsVisible, setTermsVisible]           = useState(false);
+      const [deckEntered, setDeckEntered]             = useState(false);
+      const [autopay, setAutopay]                     = useState(true);
+      const [disclosureChecked, setDisclosureChecked] = useState(false);
+      const [isConfirming, setIsConfirming]           = useState(false);
+      const [headingTransition, setHeadingTransition] = useState(null);
+      const [isCardAddedExiting, setIsCardAddedExiting] = useState(false);
+
+      const ntpEntryPhases = ['wallet-ntp', 'add-to-wallet', 'pay-later-options'];
+      const ntpMidPhases   = ['ntp-splash', 'generic-loading-1', 'phone-entry', 'generic-loading-2', 'account-creation', 'generic-loading-3'];
+      const isNtpEntry = ntpEntryPhases.includes(phase);
+      const isNtpMid   = ntpMidPhases.includes(phase);
+      const isNtp      = isNtpEntry; // NTP wallet overlay only covers entry phases; mid phases use Affirm sheet
+
+      // Deck entrance for input phase
+      useEffect(() => {
+        if (phase === 'input') {
+          const t = setTimeout(() => setDeckEntered(true), 350);
+          return () => clearTimeout(t);
+        }
+      }, [phase]);
+
+      // Auto-advance: generic-loading-1 → phone-entry (3s)
+      useEffect(() => {
+        if (phase === 'generic-loading-1') {
+          const t = setTimeout(() => setPhase('phone-entry'), 3000);
+          timerRefs.current.push(t);
+          return () => clearTimeout(t);
+        }
+      }, [phase]);
+
+      // Auto-advance: generic-loading-2 → account-creation (3s) — Cohort A: NTP needs account creation
+      useEffect(() => {
+        if (phase === 'generic-loading-2') {
+          const t = setTimeout(() => setPhase('account-creation'), 3000);
+          timerRefs.current.push(t);
+          return () => clearTimeout(t);
+        }
+      }, [phase]);
+
+      // Auto-advance: generic-loading-3 → input (3s) — after account creation loading
+      useEffect(() => {
+        if (phase === 'generic-loading-3') {
+          const t = setTimeout(() => {
+            setRawAmt(''); setKbOpen(true); setSpread(false); setShimmer(false);
+            setSelectedPlan(null); setCardTopPx(CARD_TOP_INPUT); setCardMoveDur('0ms');
+            setGhostOpacity(1); setTermsVisible(false); setDeckEntered(false);
+            setAutopay(true); setDisclosureChecked(false); setIsConfirming(false);
+            setAmtError(false); setHeadingTransition(null);
+            setPhase('input');
+          }, 3000);
+          timerRefs.current.push(t);
+          return () => clearTimeout(t);
+        }
+      }, [phase]);
+
+      // Auto-advance: adding-card → card-added (4s)
+      useEffect(() => {
+        if (phase === 'adding-card') {
+          const t = setTimeout(() => setPhase('card-added'), 4000);
+          timerRefs.current.push(t);
+          return () => clearTimeout(t);
+        }
+      }, [phase]);
+
+      // Auto-advance: card-added → exit animation → wallet-complete
+      useEffect(() => {
+        if (phase === 'card-added') {
+          const t1 = setTimeout(() => setIsCardAddedExiting(true), 1000);
+          const t2 = setTimeout(() => { setIsCardAddedExiting(false); setPhase('wallet-complete'); }, 1500);
+          timerRefs.current.push(t1, t2);
+          return () => { clearTimeout(t1); clearTimeout(t2); };
+        }
+      }, [phase]);
+
+      const sheetOpen = ['ntp-splash', 'generic-loading-1', 'phone-entry', 'generic-loading-2', 'account-creation', 'generic-loading-3', 'input', 'loading', 'terms', 'review', 'purchasing-power'].includes(phase);
+      const isModal   = phase === 'modal';
+      const isLoading = phase === 'loading';
+      const isTerms   = phase === 'terms';
+      const isReview  = phase === 'review';
+
+      const amt        = parseFloat(rawAmt) || 0;
+      const hasAmt     = amt > 0;
+      const fmt        = n => n.toFixed(2);
+      const interest6  = amt * 0.05;
+      const interest12 = amt * 0.088;
+
+      const plans = [
+        { id: 'p4',  payment: `$${fmt(amt / 4)}`,                frequency: 'every 2 weeks · 4 payments', interest: '$0 interest',               due: '$0 due today', badge: '0% APR',         badgeBg: c.bg, badgeColor: c.sub },
+        { id: 'p6',  payment: `$${fmt((amt + interest6) / 6)}`,  frequency: 'per month · 6 months',        interest: `$${fmt(interest6)} interest`, due: '$0 due today' },
+        { id: 'p12', payment: `$${fmt((amt + interest12) / 12)}`,frequency: 'per month · 12 months',       interest: `$${fmt(interest12)} interest`,due: '$0 due today', badge: 'Lowest monthly', badgeBg: c.bg, badgeColor: c.sub },
+      ];
+
+      const selectedPlanData = plans.find(p => p.id === selectedPlan);
+      const interestAmt      = selectedPlan === 'p6' ? interest6 : selectedPlan === 'p12' ? interest12 : 0;
+      const total            = amt + interestAmt;
+
+      // ── Handlers ─────────────────────────────────────────────────
+      const handleOpenModal = () => setPhase('modal');
+
+      const handleOpenSheet = () => {
+        clearAllTimers();
+        setRawAmt(''); setKbOpen(true); setSpread(false); setShimmer(false);
+        setSelectedPlan(null); setCardTopPx(CARD_TOP_INPUT); setCardMoveDur('0ms');
+        setGhostOpacity(1); setTermsVisible(false); setDeckEntered(false);
+        setAutopay(true); setDisclosureChecked(false); setIsConfirming(false);
+        setAmtError(false); setHeadingTransition(null);
+        setPhase('input');
+      };
+
+      const handleCancel = () => {
+        clearAllTimers();
+        setKbOpen(false); setIsConfirming(false); setAmtError(false); setHeadingTransition(null);
+        setPhase('wallet');
+      };
+
+      const handleSeePlans = () => {
+        if (!hasAmt) { setAmtError(true); return; }
+        clearAllTimers();
+        setKbOpen(false);
+        setHeadingTransition('input-exit');
+        setCardMoveDur('320ms');
+        setCardTopPx(CARD_TOP_LOADING);
+        setSpread(true);
+
+        timerRefs.current = [
+          setTimeout(() => { setHeadingTransition(null); setPhase('loading'); }, 280),
+          setTimeout(() => setShimmer(true), 640),
+          setTimeout(() => setHeadingTransition('loading-exit'), 5000),
+          setTimeout(() => { setHeadingTransition(null); setTermsVisible(true); setGhostOpacity(0); setSelectedPlan('p4'); }, 5280),
+          setTimeout(() => setPhase('terms'), 5730),
+        ];
+      };
+
+      const handleKey = k => {
+        setAmtError(false);
+        if (k === '⌫') { setRawAmt(p => p.slice(0, -1)); return; }
+        if (k === '.') { if (!rawAmt.includes('.')) setRawAmt(p => p + k); return; }
+        if (rawAmt.length < 7) setRawAmt(p => p + k);
+      };
+
+      const numpadRows = [['1','2','3'],['4','5','6'],['7','8','9'],['.',  '0','⌫']];
+
+      // Review screen helpers
+      const paymentCount = selectedPlan === 'p4' ? 4 : selectedPlan === 'p6' ? 6 : 12;
+      const planFreqDisplay = selectedPlan === 'p4' ? 'every 2 weeks' : selectedPlan === 'p6' ? 'per month for 6 months' : 'per month for 12 months';
+
+      const getTimelineDates = () => {
+        const base = new Date(2026, 3, 8);
+        const fmtDate = d => {
+          const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          return `${mo[d.getMonth()]} ${d.getDate()}${d.getFullYear() !== 2026 ? ', ' + d.getFullYear() : ''}`;
+        };
+        if (selectedPlan === 'p4') {
+          return [14, 28, 42, 56].map(days => {
+            const d = new Date(base); d.setDate(d.getDate() + days); return fmtDate(d);
+          });
+        }
+        const months = selectedPlan === 'p6' ? 6 : 12;
+        const a = new Date(base); a.setMonth(a.getMonth() + 1);
+        const b = new Date(base); b.setMonth(b.getMonth() + 2);
+        const last = new Date(base); last.setMonth(last.getMonth() + months);
+        return [fmtDate(a), fmtDate(b), fmtDate(last)];
+      };
+      const timelineDates = selectedPlan ? getTimelineDates() : ['', '', ''];
+
+      return (
+        <div className="phone">
+          {/* ── Base: WalletScreen (with Affirm card) — RTP path + wallet-complete ── */}
+          <WalletScreen phase={phase} rawAmt={rawAmt} onChoosePlan={handleOpenModal} />
+
+          {/* ── NTP overlay (wallet-ntp through generic-loading-2) ── */}
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 5,
+            opacity: isNtp ? 1 : 0,
+            pointerEvents: isNtp ? 'auto' : 'none',
+            transition: 'opacity 0.35s ease',
+          }}>
+            <NtpWalletScreen onAddCard={() => setPhase('add-to-wallet')} />
+
+            <AddToWalletFlow
+              phase={phase}
+              onClose={() => setPhase('wallet-ntp')}
+              onPayLaterOptions={() => setPhase('pay-later-options')}
+              onPayLaterBack={() => setPhase('add-to-wallet')}
+              onSelectAffirm={() => setPhase('ntp-splash')}
+            />
+
+          </div>
+
+          {/* ── "Choose a Plan" modal overlay ── */}
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 15,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.18)',
+            backdropFilter: 'blur(18px)',
+            WebkitBackdropFilter: 'blur(18px)',
+            opacity: isModal ? 1 : 0,
+            pointerEvents: isModal ? 'auto' : 'none',
+            transition: 'opacity 0.25s ease',
+          }}>
+            <div style={{ position: 'absolute', inset: 0 }} onClick={() => setPhase('wallet')} />
+            <div style={{
+              position: 'relative', width: 342, borderRadius: 34,
+              background: 'rgba(242,242,247,0.88)',
+              backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+              boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+              padding: '14px 14px 14px',
+              zIndex: 1,
+              transform: isModal ? 'scale(1) translateY(0)' : 'scale(0.94) translateY(12px)',
+              transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
+            }}>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '8px 8px 12px' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 999, background: '#f2f2f7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                    <circle cx="10" cy="10" r="8" stroke="#8e8e93" strokeWidth="1.8"/>
+                    <path d="M10 6.5v3.8l2.5 1.7" stroke="#8e8e93" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <p style={{ fontSize: 16, fontWeight: 400, color: '#000', fontFamily: 'system-ui, sans-serif', margin: '0 0 1px', lineHeight: 1.3 }}>Pay Later</p>
+                  <p style={{ fontSize: 16, fontWeight: 600, color: '#000', fontFamily: 'system-ui, sans-serif', margin: 0, lineHeight: 1.3 }}>Choose a Plan</p>
+                </div>
+              </div>
+              <p style={{ fontSize: 17, color: 'rgba(60,60,67,0.6)', fontFamily: 'system-ui, sans-serif', margin: '0 8px 14px', lineHeight: 1.5, letterSpacing: '-0.4px' }}>
+                Choose a payment plan now for your purchase.
+              </p>
+              <button
+                onClick={handleOpenSheet}
+                style={{
+                  width: '100%', background: 'rgba(120,120,128,0.16)', color: '#000',
+                  border: 'none', borderRadius: 100, padding: '13px 16px',
+                  fontSize: 17, fontWeight: 500, fontFamily: 'system-ui, sans-serif',
+                  cursor: 'pointer', letterSpacing: '-0.4px',
+                }}
+              >
+                Choose a Plan
+              </button>
+            </div>
+          </div>
+
+          {/* ── Affirm bottom sheet ── */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', flexDirection: 'column',
+            transform: sheetOpen ? 'translateY(0)' : 'translateY(100%)',
+            transition: 'transform 0.42s cubic-bezier(0.4,0,0.2,1)',
+            zIndex: 20,
+            overflow: 'hidden',
+            background: 'transparent',
+            pointerEvents: sheetOpen ? 'auto' : 'none',
+          }}>
+            <NavBarApple onCancel={isNtpMid ? () => { clearAllTimers(); setPhase('wallet-ntp'); } : handleCancel} hideLogo={phase === 'ntp-splash'} />
+
+            <div style={{
+              flex: 1,
+              overflowY: (isTerms || isReview || phase === 'purchasing-power' || phase === 'account-creation') ? 'auto' : 'hidden',
+              background: phase === 'ntp-splash' ? 'white' : c.bg,
+              padding: '14px 16px 20px',
+              position: 'relative',
+              display: 'flex', flexDirection: 'column',
+            }}>
+              {/* NTP Splash screen */}
+              {phase === 'ntp-splash' && (
+                <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                  {/* Affirm logo */}
+                  <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 16, paddingBottom: 28 }}>
+                    <img src="./affirm-logo.svg" style={{ height: 32, width: 'auto' }} />
+                  </div>
+                  {/* Content */}
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontFamily: 'system-ui, sans-serif', fontWeight: 600, fontSize: 20, color: '#1c1c1e', lineHeight: '25px', letterSpacing: '-0.45px', marginBottom: 10 }}>
+                      Flexible Plans with No Fees. Ever.
+                    </p>
+                    <p style={{ fontFamily: 'system-ui, sans-serif', fontWeight: 400, fontSize: 20, color: 'rgba(60,60,67,0.6)', lineHeight: '25px', letterSpacing: '-0.45px' }}>
+                      Choose a plan that suits your budget. Check options today with no effect on your credit.
+                    </p>
+                  </div>
+                  {/* Bottom: legal + CTA */}
+                  <div>
+                    <p style={{ fontSize: 12, color: 'rgba(60,60,67,0.6)', fontFamily: 'system-ui, sans-serif', lineHeight: '16px', letterSpacing: '-0.4px', marginBottom: 14 }}>
+                      Your phone number will be shared with Affirm for the purpose of identification.
+                    </p>
+                    <button
+                      onClick={() => setPhase('generic-loading-1')}
+                      style={{
+                        width: '100%', background: '#007AFF', color: 'white', border: 'none',
+                        borderRadius: 999, padding: '14px 20px', fontSize: 17, fontWeight: 600,
+                        fontFamily: 'system-ui, sans-serif', cursor: 'pointer',
+                        letterSpacing: '-0.4px', lineHeight: '22px',
+                      }}
+                    >
+                      Continue with Affirm
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* NTP Loading screens */}
+              {(phase === 'generic-loading-1' || phase === 'generic-loading-2') && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 20 }}>
+                  <svg width="44" height="44" viewBox="0 0 44 44" fill="none" style={{ animation: 'spin 0.75s linear infinite' }}>
+                    <circle cx="22" cy="22" r="18" stroke="#e2e2e6" strokeWidth="4"/>
+                    <path d="M22 4a18 18 0 0 1 18 18" stroke={c.text} strokeWidth="4" strokeLinecap="round"/>
+                  </svg>
+                  <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 17, color: c.sub, textAlign: 'center', lineHeight: 1.55 }}>
+                    This may take a few seconds…
+                  </p>
+                </div>
+              )}
+
+              {/* NTP Phone entry */}
+              {phase === 'phone-entry' && (
+                <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                  <div style={{ flex: 1 }}>
+                    <h1 style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 24, color: c.text, lineHeight: '28px', marginBottom: 8 }}>
+                      Enter your number to see plans
+                    </h1>
+                    <p style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 400, fontSize: 18, color: c.sub, lineHeight: '27px', marginBottom: 24 }}>
+                      This helps us verify it's you and create personalized payment options.
+                    </p>
+                    {/* Phone input */}
+                    <div style={{ background: 'white', borderRadius: 12, padding: '6px 16px 10px', marginBottom: 8 }}>
+                      <p style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 14, color: c.sub, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '0 0 2px' }}>Mobile Number</p>
+                      <p style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 400, fontSize: 18, color: c.text, lineHeight: '26px', margin: 0 }}>+1 &nbsp;&nbsp;&nbsp;(123) 456-7890</p>
+                    </div>
+                    <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.sub, lineHeight: '24px', marginBottom: 24 }}>
+                      New number? Update it on affirm.com or in the app.
+                    </p>
+                    {/* Continue button */}
+                    <button
+                      onClick={() => setPhase('generic-loading-2')}
+                      style={{
+                        width: '100%', background: c.accent, color: '#f7f7f8', border: 'none',
+                        borderRadius: 999, height: 48, fontSize: 18, fontWeight: 500,
+                        fontFamily: "'Calibre', sans-serif", cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      Continue
+                    </button>
+                  </div>
+                  {/* ToS */}
+                  <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.text, lineHeight: '24px', marginTop: 16 }}>
+                    By continuing, I agree to Affirm's{' '}
+                    <span style={{ fontWeight: 500, color: c.link, textDecoration: 'underline' }}>Terms of Service</span>
+                    {' and '}
+                    <span style={{ fontWeight: 500, color: c.link, textDecoration: 'underline' }}>Privacy Policy</span>
+                    {'. I authorize Affirm to obtain, use, and share consumer reports about me. Plans are subject to eligibility and provided by these '}
+                    <span style={{ fontWeight: 500, color: c.link, textDecoration: 'underline' }}>lending partners</span>.
+                  </p>
+                </div>
+              )}
+
+              {/* Account creation screen (Cohort A) */}
+              {phase === 'account-creation' && (
+                <AccountCreationScreen onContinue={() => setPhase('generic-loading-3')} />
+              )}
+
+              {/* Post-account-creation loading */}
+              {phase === 'generic-loading-3' && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 20 }}>
+                  <svg width="44" height="44" viewBox="0 0 44 44" fill="none" style={{ animation: 'spin 0.75s linear infinite' }}>
+                    <circle cx="22" cy="22" r="18" stroke="#e2e2e6" strokeWidth="4"/>
+                    <path d="M22 4a18 18 0 0 1 18 18" stroke={c.text} strokeWidth="4" strokeLinecap="round"/>
+                  </svg>
+                  <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 17, color: c.sub, textAlign: 'center', lineHeight: 1.55 }}>
+                    Setting up your account&hellip;
+                  </p>
+                </div>
+              )}
+
+              {/* Purchasing power education screen */}
+              {phase === 'purchasing-power' && (
+                <PurchasingPowerScreen onClose={() => setPhase('input')} />
+              )}
+
+              {/* Input screen */}
+              {(phase === 'input' || headingTransition === 'input-exit') && (
+                <div style={{
+                  animation: headingTransition === 'input-exit'
+                    ? 'slideUpOut 280ms cubic-bezier(0.4,0,0.2,1) forwards'
+                    : 'slideUpIn 320ms cubic-bezier(0.4,0,0.2,1) both',
+                }}>
+                  <h1 style={{ fontFamily: "'Axiforma for Affirm',sans-serif", fontWeight: 700, fontSize: 18, color: c.text, margin: '2px 0 10px', lineHeight: 1.35 }}>
+                    See payment plans for:
+                  </h1>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginBottom: amtError ? 4 : 8 }}>
+                    <span style={{ fontFamily: "'Axiforma for Affirm',sans-serif", fontWeight: 700, fontSize: 52, lineHeight: 1, color: amtError ? '#b4193f' : c.text }}>$</span>
+                    {!rawAmt && (
+                      <span style={{ width: 0, borderLeft: '2.5px solid #4A4AF4', height: 50, animation: 'blink 1s step-end infinite', alignSelf: 'center' }} />
+                    )}
+                    <span style={{ fontFamily: "'Axiforma for Affirm',sans-serif", fontWeight: 700, fontSize: 52, lineHeight: 1, color: rawAmt ? c.text : '#b1b1be', minWidth: 4 }}>
+                      {rawAmt || '50'}
+                    </span>
+                    {rawAmt && kbOpen && (
+                      <span style={{ width: 0, borderLeft: '2.5px solid #4A4AF4', height: 50, animation: 'blink 1s step-end infinite', alignSelf: 'center', marginLeft: 1 }} />
+                    )}
+                  </div>
+                  {amtError && (
+                    <p style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: '#b4193f', margin: '0 0 6px', lineHeight: '24px' }}>
+                      Please enter an amount.
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, margin: '0 0 14px' }}>
+                    <p style={{ fontFamily: "'Calibre',sans-serif", fontSize: 14, color: c.sub, margin: 0, lineHeight: 1.5 }}>
+                      Enter an estimate to see options. Spend up to $4,000.
+                    </p>
+                    <button
+                      onClick={() => setPhase('purchasing-power')}
+                      style={{ background: 'none', border: 'none', padding: '0 2px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                        <circle cx="8" cy="8" r="7" stroke={c.sub} strokeWidth="1.5"/>
+                        <path d="M8 7.5v4" stroke={c.sub} strokeWidth="1.5" strokeLinecap="round"/>
+                        <circle cx="8" cy="4.75" r="0.85" fill={c.sub}/>
+                      </svg>
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleSeePlans}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                      background: c.accent, color: 'white', border: 'none', borderRadius: 999,
+                      padding: '11px 22px', fontSize: 16, fontWeight: 500, fontFamily: "'Calibre',sans-serif",
+                      cursor: 'pointer', marginBottom: 14,
+                    }}
+                  >
+                    Show me plans
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M7 1v10M2 7l5 5 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              )}
+
+              {/* Loading heading */}
+              {(isLoading || headingTransition === 'loading-exit') && !termsVisible && (
+                <div style={{
+                  animation: headingTransition === 'loading-exit'
+                    ? 'slideUpOut 280ms cubic-bezier(0.4,0,0.2,1) forwards'
+                    : 'slideUpIn 320ms cubic-bezier(0.4,0,0.2,1) both',
+                  marginBottom: 22,
+                }}>
+                  <h1 style={{ fontFamily: "'Axiforma for Affirm',sans-serif", fontWeight: 700, fontSize: 22, color: c.text, margin: '2px 0 6px', lineHeight: 1.3 }}>
+                    Loading plans for ${rawAmt}
+                  </h1>
+                  <p style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.sub }}>
+                    This may take a few seconds…
+                  </p>
+                </div>
+              )}
+
+              {/* Terms content */}
+              {termsVisible && !isReview && (
+                <div>
+                  <div style={{ animation: 'slideUpIn 320ms cubic-bezier(0.4,0,0.2,1) both' }}>
+                    <h1 style={{ fontFamily: "'Axiforma for Affirm',sans-serif", fontWeight: 700, fontSize: 20, color: c.text, margin: '2px 0 6px', lineHeight: 1.3 }}>
+                      Payment plans for ${fmt(amt)}
+                    </h1>
+                    <p style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.sub, margin: '0 0 16px' }}>
+                      We're not big on fees, so we don't charge any.
+                    </p>
+                  </div>
+                  <div style={{ animation: 'fadeIn 0.45s ease 0.08s both', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                    {plans.map(plan => (
+                      <PlanCard key={plan.id} plan={plan} selected={selectedPlan === plan.id} onSelect={() => setSelectedPlan(plan.id)} />
+                    ))}
+                  </div>
+                  <div style={{ animation: 'fadeIn 0.4s ease 0.18s both' }}>
+                    <div style={{ marginBottom: 12 }}>
+                      {[['Purchase amount', `$${fmt(amt)}`, false], ['Total of payments', `$${fmt(total)}`, true]].map(([label, val, bold]) => (
+                        <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
+                          <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.sub }}>{label}</span>
+                          <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, fontWeight: bold ? 600 : 400, color: c.text }}>{val}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={{ fontFamily: "'Calibre',sans-serif", fontSize: 14, color: c.sub, margin: '0 0 6px', lineHeight: 1.5 }}>
+                      <span style={{ color: c.link, textDecoration: 'underline' }}>Plans are subject</span> to final eligibility and approval.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Review content */}
+              {isReview && selectedPlanData && (
+                <div style={{ animation: 'fadeIn 0.3s ease', opacity: isConfirming ? 0.6 : 1, transition: 'opacity 0.3s ease', pointerEvents: isConfirming ? 'none' : 'auto' }}>
+                  <button
+                    onClick={() => setPhase('terms')}
+                    style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginBottom: 16 }}
+                  >
+                    <svg width="9" height="16" viewBox="0 0 9 16" fill="none" style={{ marginRight: 8, flexShrink: 0 }}>
+                      <path d="M7.5 1L1 8L7.5 15" stroke={c.text} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span style={{ fontFamily: "'Calibre',sans-serif", fontWeight: 500, fontSize: 24, color: c.text, lineHeight: '30px' }}>
+                      Review payment plan
+                    </span>
+                  </button>
+
+                  <div style={{ background: c.surface, borderRadius: 16, padding: '12px 16px', marginBottom: 12 }}>
+                    <div style={{ display: 'flex' }}>
+                      <div style={{ marginRight: 12, marginTop: 2, flexShrink: 0 }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                          <rect x="3" y="4" width="18" height="17" rx="3" stroke={c.text} strokeWidth="1.6"/>
+                          <path d="M8 2v4M16 2v4" stroke={c.text} strokeWidth="1.6" strokeLinecap="round"/>
+                          <path d="M3 9h18" stroke={c.text} strokeWidth="1.6"/>
+                        </svg>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontFamily: "'Calibre',sans-serif", fontWeight: 500, fontSize: 18, color: c.text, margin: '0 0 2px', lineHeight: '26px' }}>
+                          {selectedPlanData.payment} {planFreqDisplay}
+                        </p>
+                        <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.text, lineHeight: '24px' }}>
+                          {paymentCount} payments
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', marginTop: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                            {timelineDates.map((date, i) => {
+                              const SIZE = 40; const cx = SIZE / 2; const cy = SIZE / 2;
+                              const radius = SIZE * 0.35; const circ = 2 * Math.PI * radius;
+                              const strokeWidth = SIZE * 0.11;
+                              const pct = i === timelineDates.length - 1 ? 1 : (i + 1) / paymentCount;
+                              const dashoffset = circ * (1 - pct);
+                              return (
+                                <React.Fragment key={i}>
+                                  {i === timelineDates.length - 1 && paymentCount > 4 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', marginRight: 16, paddingBottom: 20 }}>
+                                      {[0,1,2].map(d => (
+                                        <div key={d} style={{ width: 3, height: 3, borderRadius: 999, background: c.sub, margin: '0 3px' }} />
+                                      ))}
+                                    </div>
+                                  )}
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: i < timelineDates.length - 1 ? 16 : 0 }}>
+                                    <svg width={SIZE} height={SIZE}>
+                                      <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#e2e2e6" strokeWidth={strokeWidth} />
+                                      <g transform={`rotate(-90 ${cx} ${cy})`}>
+                                        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="white" strokeWidth={strokeWidth + strokeWidth * 0.4} strokeDasharray={circ} strokeDashoffset={dashoffset} strokeLinecap="round" />
+                                        <circle cx={cx} cy={cy} r={radius} fill="none" stroke={c.accent} strokeWidth={strokeWidth} strokeDasharray={circ} strokeDashoffset={dashoffset} strokeLinecap="round" />
+                                      </g>
+                                    </svg>
+                                    <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.text, lineHeight: '24px', textAlign: 'center', whiteSpace: 'nowrap', marginTop: 2 }}>
+                                      {date}
+                                    </span>
+                                  </div>
+                                </React.Fragment>
+                              );
+                            })}
+                          </div>
+                          <svg width="8" height="14" viewBox="0 0 8 14" fill="none" style={{ flexShrink: 0, marginBottom: 20 }}>
+                            <path d="M1 1l6 6-6 6" stroke={c.sub} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                        <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.sub, lineHeight: '24px' }}>
+                          These due dates are close estimates.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: c.surface, borderRadius: 16, padding: '12px 16px', marginBottom: 16 }}>
+                    <div style={{ display: 'flex' }}>
+                      <div style={{ marginRight: 11, marginTop: 3, flexShrink: 0 }}>
+                        <svg width="20" height="22" viewBox="0 0 24 24" fill="none">
+                          <path d="M4 2v20l4-3 4 3 4-3 4 3V2" stroke={c.text} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M8 8h8M8 12h5" stroke={c.text} strokeWidth="1.6" strokeLinecap="round"/>
+                        </svg>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                          <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 20, fontWeight: 500, color: c.text, lineHeight: '24px' }}>Due today</span>
+                          <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 20, fontWeight: 500, color: c.text, lineHeight: '24px' }}>$0.00</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.text, lineHeight: '24px' }}>Purchase amount</span>
+                          <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.text, lineHeight: '24px' }}>${fmt(amt)}</span>
+                        </div>
+                        {interestAmt > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.text, lineHeight: '24px' }}>Interest ({selectedPlan === 'p6' ? '17.9' : '15.0'}% APR)</span>
+                            <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.text, lineHeight: '24px' }}>${fmt(interestAmt)}</span>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.text, lineHeight: '24px' }}>Total of payments</span>
+                          <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.text, lineHeight: '24px' }}>${fmt(total)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ margin: '16px 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 18, fontWeight: 500, color: c.text, lineHeight: '26px', marginRight: 8 }}>AutoPay (optional)</span>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                          <circle cx="10" cy="10" r="9" stroke={c.sub} strokeWidth="1.4"/>
+                          <path d="M10 9v5" stroke={c.sub} strokeWidth="1.4" strokeLinecap="round"/>
+                          <circle cx="10" cy="6.5" r="0.9" fill={c.sub}/>
+                        </svg>
+                      </div>
+                      <div onClick={() => setAutopay(a => !a)} style={{ width: 51, height: 31, borderRadius: 16, flexShrink: 0, background: autopay ? '#34C759' : '#e2e2e6', position: 'relative', cursor: 'pointer', transition: 'background 0.2s' }}>
+                        <div style={{ position: 'absolute', top: 2, left: autopay ? 22 : 2, width: 27, height: 27, borderRadius: 14, background: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.25)', transition: 'left 0.2s' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {autopay && (
+                    <div style={{ background: c.surface, borderRadius: 12, padding: '12px 14px', marginBottom: 24 }}>
+                      <p style={{ fontFamily: "'Calibre',sans-serif", fontSize: 13, fontWeight: 500, color: c.sub, margin: '0 0 2px', letterSpacing: 0.3, textTransform: 'uppercase' }}>Payment Method · ACH</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 18, color: c.text, lineHeight: '26px' }}>Bank account 5635</span>
+                        <svg width="14" height="8" viewBox="0 0 14 8" fill="none">
+                          <path d="M1 1l6 6 6-6" stroke={c.sub} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ height: 1, background: c.div, margin: '0 0 24px' }} />
+
+                  {interestAmt === 0 ? (
+                    <div style={{ marginBottom: 24 }}>
+                      <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.text, lineHeight: '24px' }}>
+                        By continuing, you have reviewed and agree to the{' '}
+                        <span style={{ fontWeight: 600, color: c.link, textDecoration: 'underline', cursor: 'pointer' }}>AutoPay Authorization</span>
+                        {', the '}
+                        <span style={{ fontWeight: 600, color: c.link, textDecoration: 'underline', cursor: 'pointer' }}>Payment Agreement & Disclosures</span>
+                        {', and the merchant refund policy.'}
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ marginBottom: 16 }}>
+                        <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.text, lineHeight: '24px' }}>
+                          By confirming, you agree to the{' '}
+                          <span style={{ fontWeight: 600, color: c.link, textDecoration: 'underline', cursor: 'pointer' }}>AutoPay Authorization</span>.
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+                        <div onClick={() => setDisclosureChecked(d => !d)} style={{ width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 2, border: `1.5px solid ${disclosureChecked ? c.accent : '#a0a0b4'}`, background: disclosureChecked ? c.accent : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.15s' }}>
+                          {disclosureChecked && (
+                            <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                              <path d="M1 4.5l3 3.5L10 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </div>
+                        <span style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.text, lineHeight: '24px', flex: 1 }}>
+                          I have reviewed and agree to the{' '}
+                          <span style={{ fontWeight: 600, color: c.link, textDecoration: 'underline', cursor: 'pointer' }}>Truth in Lending Disclosure</span>
+                          {', the '}
+                          <span style={{ fontWeight: 600, color: c.link, textDecoration: 'underline', cursor: 'pointer' }}>Loan Agreement</span>
+                          {', the merchant refund policy, and have received the '}
+                          <span style={{ fontWeight: 600, color: c.link, textDecoration: 'underline', cursor: 'pointer' }}>Credit Score Disclosure</span>.
+                        </span>
+                      </div>
+                    </>
+                  )}
+
+                  <div style={{ background: c.surface, borderRadius: 16, padding: 16, marginBottom: 8 }}>
+                    <p style={{ fontFamily: "'Calibre',sans-serif", fontWeight: 500, fontSize: 18, color: c.text, margin: '0 0 4px', lineHeight: '26px' }}>
+                      Activate, then head to checkout
+                    </p>
+                    <p style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.sub, margin: 0, lineHeight: '24px' }}>
+                      Your plan won't start until you complete your purchase.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Continue to review CTA */}
+            {termsVisible && !isReview && selectedPlan && (
+              <div style={{ padding: '10px 16px', flexShrink: 0, borderTop: `1px solid ${c.div}`, background: c.bg, animation: 'fadeIn 0.3s ease' }}>
+                <button
+                  onClick={() => setPhase('review')}
+                  style={{ width: '100%', background: c.accent, color: 'white', border: 'none', borderRadius: 999, padding: '14px 24px', fontSize: 18, fontWeight: 500, fontFamily: "'Calibre',sans-serif", cursor: 'pointer' }}
+                >
+                  Continue to review
+                </button>
+              </div>
+            )}
+
+            {/* Accept terms CTA — goes to adding-card (NTP path) */}
+            {isReview && (
+              <div style={{ padding: '10px 16px', flexShrink: 0, borderTop: `1px solid ${c.div}`, background: c.bg }}>
+                <button
+                  disabled={isConfirming}
+                  onClick={() => {
+                    setIsConfirming(true);
+                    const t = setTimeout(() => {
+                      setIsConfirming(false);
+                      setKbOpen(false);
+                      setPhase('adding-card');
+                    }, 2500);
+                    timerRefs.current.push(t);
+                  }}
+                  style={{
+                    width: '100%', background: c.accent, color: 'white', border: 'none',
+                    borderRadius: 999, padding: '14px 24px', fontSize: 18, fontWeight: 500,
+                    fontFamily: "'Calibre',sans-serif",
+                    cursor: isConfirming ? 'default' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    minHeight: 52,
+                  }}
+                >
+                  {isConfirming ? (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 0.75s linear infinite' }}>
+                      <circle cx="12" cy="12" r="9.5" stroke="rgba(255,255,255,0.35)" strokeWidth="2.5"/>
+                      <path d="M12 2.5a9.5 9.5 0 0 1 9.5 9.5" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+                    </svg>
+                  ) : 'Accept terms & continue'}
+                </button>
+                {isConfirming && (
+                  <p style={{ fontFamily: "'Calibre',sans-serif", fontSize: 16, color: c.sub, textAlign: 'center', margin: '8px 0 0', lineHeight: '24px' }}>
+                    This may take a few seconds
+                  </p>
+                )}
+              </div>
+            )}
+
+            <HomeIndicator />
+
+            {/* Ghost cards */}
+            {phase !== 'terms' && phase !== 'review' && phase !== 'purchasing-power' && (
+              <div style={{
+                position: 'absolute',
+                left: 16, right: 16,
+                top: (phase === 'input' && amtError) ? cardTopPx + 30 : cardTopPx,
+                transition: `top ${cardMoveDur} cubic-bezier(0.4,0,0.2,1), opacity 0.45s ease`,
+                opacity: ghostOpacity,
+                zIndex: 5,
+                pointerEvents: 'none',
+              }}>
+                <AnimatedGhostStack spread={spread} shimmer={shimmer} entered={deckEntered} />
+              </div>
+            )}
+
+            {/* Keyboard */}
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              transform: (kbOpen && phase !== 'purchasing-power') ? 'translateY(0)' : 'translateY(110%)',
+              transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
+              zIndex: 10,
+            }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3, padding: '6px 3px 4px', background: '#cfd0d5' }}>
+                {numpadRows.map((row, ri) =>
+                  row.map(key => (
+                    <button key={`${ri}-${key}`} onClick={() => handleKey(key)} style={{ padding: '14px 8px', background: key === '⌫' ? '#adb0b9' : '#ffffff', border: 'none', borderRadius: 8, fontSize: 22, fontWeight: 400, color: c.text, fontFamily: 'system-ui, sans-serif', boxShadow: '0 1px 0 rgba(0,0,0,0.3)' }}>
+                      {key}
+                    </button>
+                  ))
+                )}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8, paddingBottom: 14, background: '#cfd0d5' }}>
+                <div style={{ width: 134, height: 5, background: '#333', borderRadius: 3, opacity: 0.2 }} />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Adding Card / Card Added overlay ── */}
+          {(phase === 'adding-card' || phase === 'card-added') && (
+            <AddingCardScreen phase={phase} isExiting={isCardAddedExiting} />
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
