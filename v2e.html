@@ -632,6 +632,149 @@
       );
     }
 
+    // ── Purchasing Power Education screen ──────────────────────────
+
+    function PurchasingPowerScreen({ onClose }) {
+      return (
+        <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: 'column' }}>
+          {/* Page-level × close — sits below NavBarApple's × */}
+          <button
+            onClick={onClose}
+            style={{
+              alignSelf: 'flex-start', background: 'rgba(120,120,128,0.14)', border: 'none',
+              borderRadius: 999, width: 30, height: 30, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer', marginBottom: 20, padding: 0,
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M1 1l10 10M11 1L1 11" stroke={c.text} strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+          </button>
+
+          {/* Battery illustration */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+            <img src="./pp-battery.svg" style={{ width: 144, height: 'auto' }} />
+          </div>
+
+          {/* Heading */}
+          <h2 style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 28, color: c.text, lineHeight: '34px', margin: '0 0 12px' }}>
+            What's purchasing power?
+          </h2>
+
+          {/* Intro */}
+          <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 18, color: c.sub, lineHeight: '27px', margin: '0 0 12px' }}>
+            It's a snapshot of the estimated amount you could spend with Affirm right now.
+          </p>
+          <p style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 18, color: c.text, lineHeight: '27px', margin: '0 0 8px' }}>
+            It's different from a credit limit because:
+          </p>
+          {[
+            'It updates regularly based on your activity',
+            'It can vary by merchant and purchase category',
+          ].map((item, i) => (
+            <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ marginTop: 5, flexShrink: 0 }}>
+                <path d="M4 8.5l2.5 2.5L12 5" stroke={c.accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 17, color: c.text, lineHeight: '26px', margin: 0 }}>{item}</p>
+            </div>
+          ))}
+
+          {/* Accordion card */}
+          <div style={{ background: 'white', borderRadius: 16, overflow: 'hidden', margin: '20px 0 16px' }}>
+            {/* Section 1 */}
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 17, color: c.text, lineHeight: '25px' }}>
+                  What goes into my number?
+                </span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+                  <path d="M3 10.5l5-5 5 5" stroke={c.sub} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              {[
+                'Your payment history with Affirm',
+                'How much credit you\u2019re currently using',
+                'The merchant you\u2019re shopping with',
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ marginTop: 4, flexShrink: 0 }}>
+                    <path d="M5 8h6M8 5l3 3-3 3" stroke={c.sub} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.sub, lineHeight: '24px', margin: 0 }}>{item}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: 1, background: c.div, margin: '0 16px' }} />
+
+            {/* Section 2 */}
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 17, color: c.text, lineHeight: '25px' }}>
+                  Why does it change?
+                </span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+                  <path d="M3 10.5l5-5 5 5" stroke={c.sub} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              {/* Graph card */}
+              <div style={{ background: c.bg, borderRadius: 12, padding: '12px 14px', marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: c.bdg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M7 1L3 8h4l-1 5 5-7H7l1-5z" fill={c.bdgTxt}/>
+                    </svg>
+                  </div>
+                  <span style={{ fontFamily: "'Calibre', sans-serif", fontWeight: 500, fontSize: 14, color: c.text }}>Purchasing power</span>
+                </div>
+                <img src="./pp-changes.svg" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 12, color: c.sub, margin: '6px 0 0', textAlign: 'center' }}>
+                  for illustrative purposes only
+                </p>
+              </div>
+              <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.sub, lineHeight: '24px', margin: '0 0 8px' }}>
+                Your purchasing power changes based on:
+              </p>
+              {[
+                'Making on-time payments can increase it',
+                'Missing payments or taking on more credit can lower it',
+                'It may vary by merchant and purchase category',
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ marginTop: 4, flexShrink: 0 }}>
+                    <path d="M5 8h6M8 5l3 3-3 3" stroke={c.sub} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 16, color: c.sub, lineHeight: '24px', margin: 0 }}>{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Legal */}
+          <p style={{ fontFamily: "'Calibre', sans-serif", fontSize: 14, color: c.sub, lineHeight: '21px', margin: '0 0 20px' }}>
+            Purchasing power is an estimate and is not a guarantee of credit approval. Actual loan amounts are subject to eligibility, credit approval, and the{' '}
+            <span style={{ color: c.link, textDecoration: 'underline' }}>terms and conditions</span>{' '}
+            of your loan agreement. Loans are made by{' '}
+            <span style={{ color: c.link, textDecoration: 'underline' }}>Affirm\u2019s lending partners</span>.
+          </p>
+
+          {/* Got it CTA */}
+          <button
+            onClick={onClose}
+            style={{
+              width: '100%', background: '#000049', color: 'white', border: 'none',
+              borderRadius: 999, height: 48, fontSize: 18, fontWeight: 500,
+              fontFamily: "'Calibre', sans-serif", cursor: 'pointer', marginBottom: 8,
+            }}
+          >
+            Got it
+          </button>
+        </div>
+      );
+    }
+
     // ── Main App ────────────────────────────────────────────────────
     // Phase state machine:
     //   wallet-ntp → add-to-wallet → pay-later-options → ntp-splash
@@ -719,7 +862,7 @@
         }
       }, [phase]);
 
-      const sheetOpen = ['ntp-splash', 'generic-loading-1', 'phone-entry', 'generic-loading-2', 'input', 'loading', 'terms', 'review'].includes(phase);
+      const sheetOpen = ['ntp-splash', 'generic-loading-1', 'phone-entry', 'generic-loading-2', 'input', 'loading', 'terms', 'review', 'purchasing-power'].includes(phase);
       const isModal   = phase === 'modal';
       const isLoading = phase === 'loading';
       const isTerms   = phase === 'terms';
@@ -900,7 +1043,7 @@
 
             <div style={{
               flex: 1,
-              overflowY: (isTerms || isReview) ? 'auto' : 'hidden',
+              overflowY: (isTerms || isReview || phase === 'purchasing-power') ? 'auto' : 'hidden',
               background: phase === 'ntp-splash' ? 'white' : c.bg,
               padding: '14px 16px 20px',
               position: 'relative',
@@ -998,6 +1141,11 @@
                 </div>
               )}
 
+              {/* Purchasing power education screen */}
+              {phase === 'purchasing-power' && (
+                <PurchasingPowerScreen onClose={() => setPhase('input')} />
+              )}
+
               {/* Input screen */}
               {(phase === 'input' || headingTransition === 'input-exit') && (
                 <div style={{
@@ -1025,9 +1173,21 @@
                       Please enter an amount.
                     </p>
                   )}
-                  <p style={{ fontFamily: "'Calibre',sans-serif", fontSize: 14, color: c.sub, margin: '0 0 14px', lineHeight: 1.5 }}>
-                    Enter an estimate to see options. Spend up to $4,000.
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, margin: '0 0 14px' }}>
+                    <p style={{ fontFamily: "'Calibre',sans-serif", fontSize: 14, color: c.sub, margin: 0, lineHeight: 1.5 }}>
+                      Enter an estimate to see options. Spend up to $4,000.
+                    </p>
+                    <button
+                      onClick={() => setPhase('purchasing-power')}
+                      style={{ background: 'none', border: 'none', padding: '0 2px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                        <circle cx="8" cy="8" r="7" stroke={c.sub} strokeWidth="1.5"/>
+                        <path d="M8 7.5v4" stroke={c.sub} strokeWidth="1.5" strokeLinecap="round"/>
+                        <circle cx="8" cy="4.75" r="0.85" fill={c.sub}/>
+                      </svg>
+                    </button>
+                  </div>
                   <button
                     onClick={handleSeePlans}
                     style={{
