@@ -58,6 +58,7 @@
     @keyframes fadeIn      { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
     @keyframes spin        { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
     @keyframes slideUpOut  { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(-28px)} }
+    @keyframes fadeOut     { from{opacity:1} to{opacity:0} }
     @keyframes slideUpIn   { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
     .shimmer-bg {
       background: linear-gradient(90deg, #e2e2e6 25%, #ededf1 50%, #e2e2e6 75%);
@@ -485,7 +486,7 @@
       return (
         <div style={{
           position: 'absolute', inset: 0, zIndex: 45, background: 'white', display: 'flex', flexDirection: 'column',
-          animation: isExiting ? 'slideUpOut 0.45s cubic-bezier(0.4,0,0.2,1) forwards' : 'none',
+          animation: isExiting ? 'fadeOut 0.45s cubic-bezier(0.4,0,0.2,1) forwards' : 'none',
         }}>
           <StatusBar dark={false} />
           {/* Spacer matching WalletScreen's 52px header so card lands in same position */}
@@ -505,7 +506,7 @@
           </div>
 
           {/* Status text */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: isExiting ? 'slideUpOut 0.4s cubic-bezier(0.4,0,0.2,1) forwards' : 'none' }}>
             {isAdded ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 22, fontWeight: 600, color: '#1c1c1e', fontFamily: 'system-ui, sans-serif' }}>Card Added</span>
