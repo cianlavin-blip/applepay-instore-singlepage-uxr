@@ -478,12 +478,15 @@
 
     // ── Adding Card Screen ──────────────────────────────────────────
 
-    function AddingCardScreen({ phase }) {
+    function AddingCardScreen({ phase, isExiting }) {
       const isAdded = phase === 'card-added';
       const [cardErr, setCardErr] = React.useState(false);
 
       return (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 45, background: 'white', display: 'flex', flexDirection: 'column' }}>
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 45, background: 'white', display: 'flex', flexDirection: 'column',
+          animation: isExiting ? 'slideUpOut 0.45s cubic-bezier(0.4,0,0.2,1) forwards' : 'none',
+        }}>
           <StatusBar dark={false} />
           {/* Spacer matching WalletScreen's 52px header so card lands in same position */}
           <div style={{ height: 52, flexShrink: 0 }} />
@@ -591,7 +594,7 @@
             </div>
 
             {/* Pay Later row */}
-            <div style={{ margin: '0 20px' }}>
+            <div style={{ margin: '0 20px', animation: isComplete ? 'slideUpIn 0.5s cubic-bezier(0.4,0,0.2,1) 0.1s both' : 'none' }}>
               <div
                 onClick={!isComplete ? onChoosePlan : undefined}
                 style={{
@@ -655,6 +658,7 @@
       const [disclosureChecked, setDisclosureChecked] = useState(false);
       const [isConfirming, setIsConfirming]           = useState(false);
       const [headingTransition, setHeadingTransition] = useState(null);
+      const [isCardAddedExiting, setIsCardAddedExiting] = useState(false);
 
       const ntpEntryPhases = ['wallet-ntp', 'add-to-wallet', 'pay-later-options'];
       const ntpMidPhases   = ['ntp-splash', 'generic-loading-1', 'phone-entry', 'generic-loading-2'];
@@ -704,12 +708,13 @@
         }
       }, [phase]);
 
-      // Auto-advance: card-added → wallet-complete (1s)
+      // Auto-advance: card-added → exit animation → wallet-complete
       useEffect(() => {
         if (phase === 'card-added') {
-          const t = setTimeout(() => setPhase('wallet-complete'), 1000);
-          timerRefs.current.push(t);
-          return () => clearTimeout(t);
+          const t1 = setTimeout(() => setIsCardAddedExiting(true), 1000);
+          const t2 = setTimeout(() => { setIsCardAddedExiting(false); setPhase('wallet-complete'); }, 1500);
+          timerRefs.current.push(t1, t2);
+          return () => { clearTimeout(t1); clearTimeout(t2); };
         }
       }, [phase]);
 
@@ -1365,7 +1370,7 @@
 
           {/* ── Adding Card / Card Added overlay ── */}
           {(phase === 'adding-card' || phase === 'card-added') && (
-            <AddingCardScreen phase={phase} />
+            <AddingCardScreen phase={phase} isExiting={isCardAddedExiting} />
           )}
         </div>
       );
