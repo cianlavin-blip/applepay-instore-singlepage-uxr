@@ -1576,7 +1576,7 @@
             <HomeIndicator />
 
             {/* Ghost cards */}
-            {phase !== 'terms' && phase !== 'review' && phase !== 'purchasing-power' && (
+            {phase !== 'terms' && phase !== 'review' && phase !== 'purchasing-power' && !isNtpMid && (
               <div style={{
                 position: 'absolute',
                 left: 16, right: 16,
