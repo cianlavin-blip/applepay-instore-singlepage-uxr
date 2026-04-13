@@ -1217,7 +1217,7 @@
             {/* ── Ghost card absolutely-positioned layer ──
                  Sits inside the sheet, decoupled from scroll content.
                  Hidden once real plan cards appear (terms/review phase). */}
-            {phase !== 'terms' && phase !== 'review' && (
+            {phase !== 'terms' && phase !== 'review' && phase !== 'purchasing-power' && (
               <div style={{
                 position: 'absolute',
                 left: 16, right: 16,
@@ -1234,7 +1234,7 @@
             {/* ── Keyboard overlay ── */}
             <div style={{
               position: 'absolute', bottom: 0, left: 0, right: 0,
-              transform: kbOpen ? 'translateY(0)' : 'translateY(110%)',
+              transform: (kbOpen && phase !== 'purchasing-power') ? 'translateY(0)' : 'translateY(110%)',
               transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
               zIndex: 10,
             }}>
